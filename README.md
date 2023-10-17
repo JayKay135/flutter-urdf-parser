@@ -7,7 +7,12 @@ This library is majorly an extended dart port of [https://github.com/gkjohnson/u
 
 It includes a STL + DAE loader, URDF parser and quaternion + vector3 extension class.
 
+Works with all plattforms that [three_dart](https://github.com/wasabia/three_dart) currently supports. Which are currently Web, iOS, Android, macOS and Windows.
+
 ## Basic Usage
+Requires working [three_dart](https://github.com/wasabia/three_dart) project.
+
+Inside of your `initPage()` function load your urdf model.
 
 ```dart
 void initPage() async {
@@ -24,6 +29,7 @@ void initPage() async {
 ```
 
 ## Move joints
+In the urdf file defined joints can then be moved via `trySetAngle()`.
 ```dart
 robot.trySetAngle("angleName", amount);
 ```

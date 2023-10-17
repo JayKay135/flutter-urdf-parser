@@ -66,7 +66,7 @@ class URDFLoader {
   }
 
   /// Parse the URDF file and return a URDFRobot instance with all associated links and joints
-  static Future<URDFRobot?> parse(String urdfPath, String package, URDFLoaderOptions? options) {
+  static Future<URDFRobot?> parse(String urdfPath, String package, {URDFLoaderOptions? options}) {
     Map<String, String> packages = {};
     packages[singlePackageKey] = package;
 

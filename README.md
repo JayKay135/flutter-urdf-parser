@@ -90,9 +90,6 @@ void render() {
 ## Additional Features
  - Supports color extraction of binary stl files, dae files and basic urdf color nodes
 
-## Planned
- - Full material extraction of urdf files
-
 ## NOTE
 As this library is a C# port of [https://github.com/gkjohnson/urdf-loaders](https://github.com/gkjohnson/urdf-loaders) which was written for Unity.
 The library contains its own implementation of a hierarchy system using the `HierarchyNode` class with local/ global transformations.

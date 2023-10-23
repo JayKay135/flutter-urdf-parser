@@ -45,6 +45,13 @@ class URDFJoint extends HierarchyNode {
   double lower = 0;
   double upper = 0;
 
+  // for mimic joints
+  double multiplier = 1;
+  double offset = 0;
+
+  /// List of joints that mimic this joint instance
+  List<URDFJoint> mimicJoints = [];
+
   Vector3 originalPosition;
   Quaternion originalRotation;
 
@@ -73,6 +80,9 @@ class URDFJoint extends HierarchyNode {
             val = val.clamp(lower, upper);
           }
 
+          // apply multiplier and offset
+          val = multiplier * val + offset;
+
           // Negate to accommodate Right -> Left handed coordinate system
           // NOTE: It is assumed that the axis vector is normalized
 
@@ -94,6 +104,9 @@ class URDFJoint extends HierarchyNode {
         {
           val = val.clamp(lower, upper);
 
+          // apply multiplier and offset
+          val = multiplier * val + offset;
+
           Vector3 pos = originalPosition + axis * val;
 
           GroupHierarchyComponent? group = getComponent('group') as GroupHierarchyComponent?;
@@ -111,6 +124,11 @@ class URDFJoint extends HierarchyNode {
         {
           throw Exception("URDFLoader: '$type' joint not yet supported");
         }
+    }
+
+    // set the angle too for all mimicing joints
+    for (URDFJoint mimicJoint in mimicJoints) {
+      mimicJoint.setAngle(val);
     }
 
     return _angle;
@@ -169,13 +187,10 @@ class URDFRobot extends HierarchyComponent {
     return group;
   }
 
-  /// Adds a [HierarchyNode] to the scene graph with an optional [parent] and [spacing].
-  /// If [printHierarchy] is true, prints the hierarchy of the scene graph.
-  void _addHierarchyNode(HierarchyNode node, Object3D? parent, {int spacing = 0, bool printHierarchy = false}) {
+  /// Adds a [HierarchyNode] to the scene graph with an optional [parent].
+  void _addHierarchyNode(HierarchyNode node, Object3D? parent) {
     MeshHierarchyComponent? mesh = node.getComponent('mesh') as MeshHierarchyComponent?;
     Group? group;
-
-    // String spaces = " " * spacing * 2;
 
     if (mesh != null) {
       // get the global position and rotation
@@ -186,16 +201,6 @@ class URDFRobot extends HierarchyComponent {
       if (parent != null) {
         parent.add(mesh.mesh);
       }
-
-      // if (printHierarchy) {
-      //   Euler rot = mesh.mesh.rotation.clone();
-      //   rot.x *= MathUtils.rad2deg;
-      //   rot.y *= MathUtils.rad2deg;
-      //   rot.z *= MathUtils.rad2deg;
-
-      //   print(
-      //       "$spaces > ${node.name}, pos:(${mesh.mesh.position.x}, ${mesh.mesh.position.y}, ${mesh.mesh.position.z}), rot:(${rot.x.toStringAsFixed(4)}, ${rot.y.toStringAsFixed(4)}, ${rot.z.toStringAsFixed(4)}), scale:(${mesh.mesh.scale.x}, ${mesh.mesh.scale.y}, ${mesh.mesh.scale.z})");
-      // }
     } else {
       // No mesh component found
       // => create a group
@@ -210,27 +215,13 @@ class URDFRobot extends HierarchyComponent {
       if (parent != null) {
         parent.add(group);
       }
-
-      // if (printHierarchy) {
-      //   Euler rot = group.rotation.clone();
-      //   rot.x *= MathUtils.rad2deg;
-      //   rot.y *= MathUtils.rad2deg;
-      //   rot.z *= MathUtils.rad2deg;
-
-      //   print(
-      //       "$spaces # ${node.name}, pos:(${group.position.x}, ${group.position.y}, ${group.position.z}), rot:(${rot.x.toStringAsFixed(4)}, ${rot.y.toStringAsFixed(4)}, ${rot.z.toStringAsFixed(4)}), scale:(${group.scale.x}, ${group.scale.y}, ${group.scale.z})");
-      // }
     }
-
-    // if (spacing == 4) return;
 
     // continue with children recursively
     for (HierarchyNode child in node.children) {
       _addHierarchyNode(
         child,
         mesh != null ? mesh.mesh : group,
-        spacing: spacing + 1,
-        printHierarchy: printHierarchy,
       );
     }
   }
@@ -280,17 +271,7 @@ class URDFRobot extends HierarchyComponent {
 
   /// Get and set the joint angles as dictionaries
   Map<String, double> getAnglesAsDictionary() {
-    Map<String, double> result = {};
-    for (MapEntry<String, URDFJoint> kv in joints.entries) {
-      double angle = kv.value.angle;
-      if (result.containsKey(kv.key)) {
-        result[kv.key] = angle;
-      } else {
-        result[kv.key] = angle;
-      }
-    }
-
-    return result;
+    return joints.map((key, value) => MapEntry(key, value.angle));
   }
 
   /// Sets the joints via a dictionary

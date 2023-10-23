@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_gl/flutter_gl.dart';
 import 'package:three_dart/three_dart.dart';
+import 'package:three_dart/three_dart.dart' as three;
 
 /// Description: A THREE loader for STL ASCII files, as created by Solidworks and other CAD programs.
 ///
@@ -75,15 +76,25 @@ class STLLoader extends Loader {
     loader.setWithCredentials(withCredentials);
 
     loader.load(url, (text) async {
-      try {
-        onLoad(parse(text));
-      } catch (e) {
-        if (onError != null) {
-          onError(e);
-        } else {
-          print(e);
-        }
-      }
+      // try {
+
+      onLoad(parse(text));
+
+      // } catch ( e ) {
+
+      // 	if ( onError ) {
+
+      // 		onError( e );
+
+      // 	} else {
+
+      // 		console.error( e );
+
+      // 	}
+
+      // 	scope.manager.itemError( url );
+
+      // }
     }, onProgress, onError);
   }
 
@@ -99,7 +110,6 @@ class STLLoader extends Loader {
       return true;
     }
 
-    /// Returns true if the given [data] is in binary STL format, false otherwise.
     bool isBinary(Uint8List data) {
       // var reader = DataView(data);
       ByteData byteData = data.buffer.asByteData();
@@ -125,6 +135,7 @@ class STLLoader extends Loader {
 
       for (int off = 0; off < 5; off++) {
         // If "solid" text is matched to the current offset, declare it to be an ASCII STL.
+
         if (matchDataViewAt(solid, data, off)) return false;
       }
 
@@ -133,18 +144,15 @@ class STLLoader extends Loader {
       return true;
     }
 
-    /// Converts a list of doubles from URDF coordinate system to Unity coordinate system.
     List<double> urdfToUnityPos(List<double> v) {
+      // return v;
       return [-v[1], v[2], v[0]];
     }
 
-    /// Parses binary data of an STL file and returns a [Mesh] object.
-    ///
-    /// The [data] parameter is a [Uint8List] containing the binary data of the STL file.
     Mesh parseBinary(Uint8List data) {
       // const reader = DataView(data);
       ByteData byteData = data.buffer.asByteData();
-      final int faces = byteData.getUint32(80, Endian.little);
+      final int faces = byteData.getUint32(80, Endian.little); // reader.getUint32(80, true);
 
       bool hasColors = false;
       late Float32Array colors;
@@ -205,9 +213,38 @@ class STLLoader extends Loader {
           final int vertexstart = start + i * 12;
           final int componentIdx = (face * 3 * 3) + ((i - 1) * 3);
 
-          vertices[componentIdx + 0] = -byteData.getFloat32(vertexstart + 4, Endian.little);
-          vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 8, Endian.little);
-          vertices[componentIdx + 2] = byteData.getFloat32(vertexstart, Endian.little);
+          // List<double> adjustedVertices = urdfToUnityPos([
+          //   byteData.getFloat32(vertexstart, Endian.little),
+          //   byteData.getFloat32(vertexstart + 4, Endian.little),
+          //   byteData.getFloat32(vertexstart + 8, Endian.little),
+          // ]);
+
+          // vertices[componentIdx] = adjustedVertices[0]; // byteData.getFloat32(vertexstart, Endian.little);
+          // vertices[componentIdx + 1] = adjustedVertices[1]; // byteData.getFloat32(vertexstart + 4, Endian.little);
+          // vertices[componentIdx + 2] = adjustedVertices[2]; // byteData.getFloat32(vertexstart + 8, Endian.little);
+
+          // vertices[componentIdx] = byteData.getFloat32(vertexstart, Endian.little);
+          // vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 4, Endian.little);
+          // vertices[componentIdx + 2] = byteData.getFloat32(vertexstart + 8, Endian.little);
+
+          // NOTE: Old working example
+          // vertices[componentIdx + 0] = -byteData.getFloat32(vertexstart + 4, Endian.little);
+          // vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 8, Endian.little);
+          // vertices[componentIdx + 2] = byteData.getFloat32(vertexstart, Endian.little);
+
+          vertices[componentIdx + 0] = byteData.getFloat32(vertexstart + 0, Endian.little);
+          vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 4, Endian.little);
+          vertices[componentIdx + 2] = byteData.getFloat32(vertexstart + 8, Endian.little);
+
+          // List<double> adjustedNormals = [normalX, normalY, normalZ];
+
+          // normals[componentIdx] = adjustedNormals[0]; // normalX;
+          // normals[componentIdx + 1] = adjustedNormals[1]; // normalY;
+          // normals[componentIdx + 2] = adjustedNormals[2]; // normalZ;
+
+          // normals[componentIdx] = normalX;
+          // normals[componentIdx + 1] = normalY;
+          // normals[componentIdx + 2] = normalZ;
 
           normals[componentIdx + 0] = -normalY;
           normals[componentIdx + 1] = normalZ;
@@ -228,17 +265,24 @@ class STLLoader extends Loader {
 
       if (hasColors) {
         geometry.setAttribute('color', Float32BufferAttribute(colors, 3));
+        // geometry.hasColors = true;
+        // geometry.alpha = alpha;
       }
+
+      // geometry.rotateZ(pi / 2);
+      // geometry.rotateX(-pi / 2);
+      // geometry.rotateY(pi / 2);
 
       geometry.verticesNeedUpdate = true;
       geometry.normalsNeedUpdate = true;
 
+      three.Matrix4 dae2threeMatrix = three.Matrix4();
+      dae2threeMatrix.set(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1).invert();
+      geometry.applyMatrix4(dae2threeMatrix);
+
       return Mesh(geometry, MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide}));
     }
 
-    /// Parses an ASCII STL file and returns a [Mesh] object.
-    ///
-    /// The [data] parameter is a string containing the contents of the STL file.
     Mesh parseASCII(String data) {
       final BufferGeometry geometry = BufferGeometry();
       final patternSolid = RegExp(r"solid([\s\S]*?)endsolid", multiLine: true);
@@ -290,12 +334,12 @@ class STLLoader extends Loader {
 
           // every face has to own ONE valid normal
           if (normalCountPerFace != 1) {
-            throw Exception('STLLoader: Something isn\'t right with the normal of face number $faceCounter');
+            throw Exception('THREE.STLLoader: Something isn\'t right with the normal of face number $faceCounter');
           }
 
           // each face have to own THREE valid vertices
           if (vertexCountPerFace != 3) {
-            throw Exception('STLLoader: Something isn\'t right with the vertices of face number $faceCounter');
+            throw Exception('THREE.STLLoader: Something isn\'t right with the vertices of face number $faceCounter');
           }
 
           faceCounter++;
@@ -310,14 +354,23 @@ class STLLoader extends Loader {
         groupCount++;
       }
 
+      // print("vertices: $vertices");
+
       geometry.setAttribute('position', Float32BufferAttribute(Float32Array.fromList(vertices), 3));
       geometry.setAttribute('normal', Float32BufferAttribute(Float32Array.fromList(normals), 3));
+
+      three.Matrix4 dae2threeMatrix = three.Matrix4();
+      dae2threeMatrix.set(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1).invert();
+      geometry.applyMatrix4(dae2threeMatrix);
+
+      // geometry.rotateZ(pi / 2);
+      // geometry.rotateX(-pi / 2);
+      // geometry.rotateY(pi / 2);
 
       // NOTE: To be fair: I don't know how color information is stored in the ascii format. I also don't know if it actually supports colors
       return Mesh(geometry, MeshPhongMaterial({"color": 0xffffff, "flatShading": false, "side": DoubleSide}));
     }
 
-    /// Ensures that the given [buffer] is a string and returns it.
     String ensureString(buffer) {
       if (buffer is! String) {
         return String.fromCharCodes(buffer);
@@ -326,21 +379,21 @@ class STLLoader extends Loader {
       return buffer;
     }
 
-    /// Ensures that the given buffer is in binary format by checking its header.
-    ///
-    /// If the header indicates that the buffer is in ASCII format, it is converted to binary format and returned as a Uint8List.
     Uint8List ensureBinary(buffer) {
       if (buffer is String) {
-        final Uint8List arrayBuffer = Uint8List(buffer.length);
+        final Uint8List array_buffer = Uint8List(buffer.length);
         for (int i = 0; i < buffer.length; i++) {
-          arrayBuffer[i] = buffer.codeUnitAt(i) & 0xff; // implicitly assumes little-endian
+          array_buffer[i] = buffer.codeUnitAt(i) & 0xff; // implicitly assumes little-endian
         }
 
-        return arrayBuffer;
+        // return array_buffer.buffer || array_buffer;
+        return array_buffer;
       } else {
         return buffer;
       }
     }
+
+    // start
 
     final Uint8List binData = ensureBinary(json);
     return isBinary(binData) ? parseBinary(binData) : parseASCII(ensureString(json));

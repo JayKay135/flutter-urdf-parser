@@ -124,13 +124,13 @@ extension Vector3Extensions on Vector3 {
   }
 }
 
-/// An extension on [String] that provides additional functionality for file paths.
-extension PathExtension on String {
-  /// Combines the current path with the provided [pathB] and returns the resulting path as a string.
-  ///
-  /// The resulting path is obtained by concatenating the current path with the provided [pathB],
-  /// using the appropriate path separator for the current platform.
-  String combinePath(String pathB) {
-    return '$this/$pathB';
-  }
-}
+// /// An extension on [String] that provides additional functionality for file paths.
+// extension PathExtension on String {
+//   /// Combines the current path with the provided [pathB] and returns the resulting path as a string.
+//   ///
+//   /// The resulting path is obtained by concatenating the current path with the provided [pathB],
+//   /// using the appropriate path separator for the current platform.
+//   String combinePath(String pathB) {
+//     return '$this/$pathB';
+//   }
+// }

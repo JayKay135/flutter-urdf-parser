@@ -13,7 +13,7 @@ Works with all plattforms that [three_dart](https://github.com/wasabia/three_dar
 Add library to your `pubspec.yaml` under `dependencies`.
 ```yaml
 dependencies:
-    urdf-loader:
+    urdf_parser:
         git:
             url: https://github.com/JayKay135/flutter-urdf-parser
             ref: master
@@ -29,11 +29,13 @@ void initPage() async {
     scene = three.Scene();
     // ...
 
+    // parse the urdf file to a URDFRobot object
     URDFRobot? robot = await URDFLoader.parse(
         "path to urdf file",
         "path to urdf content folder where stl/dae files are located",
     );
 
+    // create a three_dart recursive object and add it to the scene
     scene.add(robot.getObject());
 }
 ```
@@ -44,7 +46,7 @@ In the urdf file defined joints can then be moved via `trySetAngle()`.
 robot.trySetAngle("angleName", amount);
 ```
 
-# Basic example to animate all available joints sequentially
+### Basic example to animate all available joints sequentially
 ```dart
 void render() {
     // ...
@@ -79,6 +81,7 @@ void render() {
  - continuous
  - revolute
  - prismatic
+ - mimic
 
 ## Supported 3D File Types
  - .stl/ .STL (both binary and ascii variants)

@@ -1,24 +1,3 @@
-/*
-Reference coordinate frames for Unity and ROS.
-The Unity coordinate frame is left handed and ROS is right handed, so
-the axes are transformed to line up appropriately. See the "URDFToUnityPos"
-and "URDFToUnityRot" functions.
-
-Unity
-   Y
-   |   Z
-   | ／
-   .-----X
-
-
-ROS URDf
-       Z
-       |   X
-       | ／
- Y-----.
-
-*/
-
 import 'dart:io';
 import 'dart:async';
 
@@ -34,6 +13,8 @@ import 'package:three_dart/three_dart.dart';
 import 'package:urdf_parser/src/extensions.dart';
 import 'package:xml/xml.dart';
 import 'package:collection/collection.dart'; // for firstWhereOrNull implementation
+
+import 'package:path/path.dart' as p;
 
 class URDFLoaderOptions {
   Function(String, String, Function(List<HierarchyNode>))? loadMeshCb;
@@ -51,13 +32,21 @@ class URDFLoader {
   /// Returns a [URDFRobot] object representing the parsed robot, or `null` if parsing failed.
   ///
   /// If [options] are provided, they will be used to configure the parser.
-  static Future<URDFRobot?> parseWithPackages(String urdfPath, Map<String, String> packages, {URDFLoaderOptions? options}) async {
+  static Future<URDFRobot?> parseWithPackages(String urdfPath, Map<String, String> packages, URDFLoaderOptions? options) async {
     File file = File(urdfPath);
-    String content = await file.readAsString();
+    String content;
+    if (await file.exists()) {
+      content = await file.readAsString();
+    } else {
+      throw Exception("File not found at $urdfPath");
+    }
 
     options ??= URDFLoaderOptions();
 
     if (options.workingPath == null) {
+      // Uri uri = Uri(path: urdfPath);
+      // options.workingPath = uri.host + Path.getDirectoryName(uri.PathAndQuery);
+
       Uri uri = Uri.parse(urdfPath);
       options.workingPath = '${uri.host}/${uri.pathSegments.take(uri.pathSegments.length - 1).join('/')}';
     }
@@ -66,20 +55,13 @@ class URDFLoader {
   }
 
   /// Parse the URDF file and return a URDFRobot instance with all associated links and joints
-  static Future<URDFRobot?> parse(String urdfPath, String package, {URDFLoaderOptions? options}) {
+  static Future<URDFRobot?> parse(String urdfPath, String package, URDFLoaderOptions? options) {
     Map<String, String> packages = {};
     packages[singlePackageKey] = package;
 
-    return parseWithPackages(urdfPath, packages, options: options);
+    return parseWithPackages(urdfPath, packages, options);
   }
 
-  /// Parses the URDF content and returns a [URDFRobot] object.
-  ///
-  /// The [urdfContent] parameter is the URDF content to be parsed.
-  /// The [packages] parameter is a map of package names and their corresponding paths.
-  /// The [options] parameter is an optional [URDFLoaderOptions] object that can be used to customize the parsing process.
-  ///
-  /// Returns a [URDFRobot] object if the parsing is successful, otherwise returns null.
   static Future<URDFRobot?> parseInternal(String urdfContent, Map<String, String> packages, URDFLoaderOptions? options) async {
     options ??= URDFLoaderOptions();
 
@@ -92,13 +74,19 @@ class URDFLoader {
     Map<String, XmlElement> xmlLinks = {};
     Map<String, XmlElement> xmlJoints = {};
 
-    // Indexed by joint name
+    /// Indexed by joint name
     Map<String, URDFJoint> urdfJoints = {};
+
+    /// Indexed by link name
     Map<String, URDFLink> urdfLinks = {};
+
+    /// Indexed by material name
     Map<String, Material> urdfMaterials = {};
 
-    // Indexed by joint name
-    Map<String, String> parentNames = {};
+    /// Map of all mimic joints
+    /// Key: Name of mimiced joint
+    /// Value: Actual mimicing joint
+    Map<String, URDFJoint> mimicJoints = {};
 
     // First node is the <robot> node
     XmlElement? robotNode = doc.childElements.firstWhereOrNull((element) => element.localName == "robot");
@@ -109,24 +97,39 @@ class URDFLoader {
 
     String robotName = robotNode.getAttribute("name")!;
 
-    List<XmlElement> xmlLinksArray = XMLFunctions.getXmlElementChildrenByName(robotNode, "link");
-    List<XmlElement> xmlJointsArray = XMLFunctions.getXmlElementChildrenByName(robotNode, "joint");
-    List<XmlElement> xmlMaterialsArray = XMLFunctions.getXmlElementChildrenByName(robotNode, "material", recursive: true);
+    List<XmlElement> xmlLinksArray = getXmlElementChildrenByName(robotNode, "link");
+    List<XmlElement> xmlJointsArray = getXmlElementChildrenByName(robotNode, "joint");
+
+    // load global materials
+    List<XmlElement> xmlMaterialsArray = getXmlElementChildrenByName(robotNode, "material", recursive: true);
 
     for (XmlElement materialNode in xmlMaterialsArray) {
-      if (materialNode.getAttribute("name") != null) {
-        String materialName = materialNode.getAttribute("name")!;
-        if (!urdfMaterials.containsKey(materialName)) {
-          Color color = Color(1.0, 1.0, 1.0); // white
-          XmlElement? colorNode = XMLFunctions.getXmlElementChildByName(materialNode, "color");
+      // if (materialNode.getAttribute("name") != null) {
+      //   String materialName = materialNode.getAttribute("name")!;
+      //   if (!urdfMaterials.containsKey(materialName)) {
+      //     Color color = Color(1.0, 1.0, 1.0); // white
+      //     XmlElement? colorNode = getXmlElementChildByName(materialNode, "color");
 
-          if (colorNode != null) {
-            color = tupleToColor(colorNode.getAttribute("rgba")!);
-          }
+      //     if (colorNode != null) {
+      //       color = tupleToColor(colorNode.getAttribute("rgba")!);
+      //     }
 
-          Material material = MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide});
-          urdfMaterials[materialName] = material;
-        }
+      //     Material material = MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide});
+      //     urdfMaterials[materialName] = material;
+      //   }
+      // }
+
+      XmlElement? colorNode = getXmlElementChildByName(materialNode, "color");
+      String? materialName = materialNode.getAttribute("name");
+
+      if (colorNode != null && materialName != null) {
+        Color color = tupleToColor(colorNode.getAttribute("rgba")!);
+        Material material = MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide});
+
+        urdfMaterials[materialName] = material;
+      } else {
+        // no color found
+        //material = MeshPhongMaterial({"color": 0xff0000, "flatShading": false, "side": DoubleSide});
       }
     }
 
@@ -141,65 +144,61 @@ class URDFLoader {
 
       xmlLinks[linkName] = linkNode;
 
-      // create the link node
+      // create the link gameobject
       URDFLink urdfLink = URDFLink.identity(linkName);
       urdfLinks[linkName] = urdfLink;
 
       // get the geometry node and skip it if there isn't one
-      List<XmlElement> visualNodesArray = XMLFunctions.getXmlElementChildrenByName(linkNode, "visual");
+      List<XmlElement> visualNodesArray = getXmlElementChildrenByName(linkNode, "visual");
       List<HierarchyNode> renderers = [];
       urdfLink.geometry = renderers;
 
       // iterate over all the visual nodes
       for (XmlElement xmlVisual in visualNodesArray) {
-        XmlElement? geomNode = XMLFunctions.getXmlElementChildByName(xmlVisual, "geometry");
+        XmlElement? geomNode = getXmlElementChildByName(xmlVisual, "geometry");
         if (geomNode == null) {
           continue;
         }
 
+        // parse material data if available
         Material? material;
-        XmlElement? materialNode = XMLFunctions.getXmlElementChildByName(xmlVisual, "material");
+        XmlElement? materialNode = getXmlElementChildByName(xmlVisual, "material");
         if (materialNode != null) {
-          if (materialNode.getAttribute("name") != null) {
-            String materialName = materialNode.getAttribute("name")!;
+          XmlElement? colorNode = getXmlElementChildByName(materialNode, "color");
+
+          String? materialName = materialNode.getAttribute("name");
+
+          if (colorNode != null) {
+            Color color = tupleToColor(colorNode.getAttribute("rgba")!);
+            material = MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide});
+          } else if (materialName != null && urdfMaterials.containsKey(materialName)) {
             material = urdfMaterials[materialName]!;
           } else {
-            Color color = Color(1.0, 1.0, 1.0); // white
-            XmlElement? colorNode = XMLFunctions.getXmlElementChildByName(materialNode, "color");
-            if (colorNode != null) {
-              color = tupleToColor(colorNode.getAttribute("rgba")!);
-            }
-
-            material = MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide});
-
-            // TODO: Load the textures
-            // XmlElement? texNode = XMLFunctions.getXmlElementChildByName(materialNode, "texture");
-            // if (texNode != null) {
-
-            // }
+            // no color found
+            //material = MeshPhongMaterial({"color": 0xff0000, "flatShading": false, "side": DoubleSide});
           }
         }
 
         // get the mesh and the origin nodes
-        XmlElement? originNode = XMLFunctions.getXmlElementChildByName(xmlVisual, "origin");
+        XmlElement? originNode = getXmlElementChildByName(xmlVisual, "origin");
 
         // extract the position and rotation of the mesh
         Vector3 position = Vector3()..zero();
         if (originNode != null && originNode.getAttribute("xyz") != null) {
           position = tupleToVector3(originNode.getAttribute("xyz")!);
         }
-        position = urdfToUnityPos(position);
+        position = urdfToThreePos(position);
 
         Vector3 rotation = Vector3()..zero();
         if (originNode != null && originNode.getAttribute("rpy") != null) {
           rotation = tupleToVector3(originNode.getAttribute("rpy")!);
         }
-        rotation = urdfToUnityRot(rotation);
+        rotation = urdfToThreeRot(rotation);
 
-        XmlElement meshNode = XMLFunctions.getXmlElementChildByName(geomNode, "mesh") ??
-            XMLFunctions.getXmlElementChildByName(geomNode, "box") ??
-            XMLFunctions.getXmlElementChildByName(geomNode, "sphere") ??
-            XMLFunctions.getXmlElementChildByName(geomNode, "cylinder")!;
+        XmlElement meshNode = getXmlElementChildByName(geomNode, "mesh") ??
+            getXmlElementChildByName(geomNode, "box") ??
+            getXmlElementChildByName(geomNode, "sphere") ??
+            getXmlElementChildByName(geomNode, "cylinder")!;
 
         try {
           if (meshNode.localName == "mesh") {
@@ -211,41 +210,50 @@ class URDFLoader {
             if (meshNode.getAttribute("scale") != null) {
               scale = tupleToVector3(meshNode.getAttribute("scale")!);
             }
-            scale = urdfToUnityScale(scale);
+            scale = urdfToThreeScale(scale);
 
             // load all meshes
+            // String extension = Path.GetExtension(fileName).ToLower().Replace(".", "");
             // extracts the file extension from the given fileName
             String extension = fileName.split('.').last.toLowerCase();
             await options.loadMeshCb!(fileName, extension, (List<HierarchyNode> models) {
               // print("models: ${models.length}: $fileName");
               // create the rest of the meshes and child them to the click target
               for (int i = 0; i < models.length; i++) {
-                HierarchyNode modelGameObject = models[i];
-                HierarchyNode meshTransform = modelGameObject;
+                HierarchyNode meshTransform = models[i];
 
                 // Capture the original local transforms before parenting in case the loader or model came in
                 // with existing pose information and then apply our transform on top of it.
                 Vector3 originalLocalPosition = meshTransform.localPosition;
                 Quaternion originalLocalRotation = meshTransform.localRotation;
                 Vector3 originalLocalScale = meshTransform.scale;
-                Vector3 transformedScale = originalLocalScale;
-                transformedScale.x *= scale.x;
-                transformedScale.y *= scale.y;
-                transformedScale.z *= scale.z;
+                Vector3 transformedScale = originalLocalScale * scale;
+                // transformedScale.x *= scale.x;
+                // transformedScale.y *= scale.y;
+                // transformedScale.z *= scale.z;
 
                 urdfLink.addChild(meshTransform);
+
                 meshTransform.localPosition = originalLocalPosition + position;
                 meshTransform.localRotation = originalLocalRotation * Quaternion()
-                  ..setFromEuler(Euler()..setFromVector3(rotation));
+                  ..setFromEuler(Euler()..setFromVector3(rotation, "YZX"));
                 meshTransform.scale = transformedScale;
 
-                modelGameObject.name = "${urdfLink.name} geometry $i";
-                renderers.add(modelGameObject);
+                meshTransform.name = "${urdfLink.name} geometry $i";
+                renderers.add(meshTransform);
 
                 // set the material
                 if (material != null) {
-                  MeshHierarchyComponent meshHierarchyComponent = modelGameObject.getComponent('mesh') as MeshHierarchyComponent;
-                  meshHierarchyComponent.mesh.material = material;
+                  MeshHierarchyComponent meshHierarchyComponent = meshTransform.getComponent('mesh') as MeshHierarchyComponent;
+
+                  // prioritise the dae/ stl color information over urdf data
+                  // if (meshHierarchyComponent.mesh.material == null) {
+                  //   meshHierarchyComponent.mesh.material = material;
+                  // }
+
+                  // meshHierarchyComponent.mesh.material ??= material;
+
+                  meshHierarchyComponent.mesh.material ??= material;
                 }
               }
             });
@@ -261,7 +269,7 @@ class URDFLoader {
                   primitiveObject = HierarchyNode.identity("cube");
 
                   Vector3 boxScale = tupleToVector3(primitiveNode.getAttribute("size")!);
-                  boxScale = urdfToUnityPos(boxScale);
+                  boxScale = urdfToThreePos(boxScale);
                   bufferGeometry = BoxGeometry(boxScale.x, boxScale.y, boxScale.z);
                   break;
                 }
@@ -300,7 +308,7 @@ class URDFLoader {
               // position the transform
               urdfLink.addChild(primitiveObject);
               primitiveObject.localPosition = position;
-              primitiveObject.localRotation = Quaternion()..setFromEuler(Euler()..setFromVector3(rotation));
+              primitiveObject.localRotation = Quaternion()..setFromEuler(Euler()..setFromVector3(rotation, "YZX"));
               primitiveObject.name = "${urdfLink.name} geometry ${primitiveNode.localName}";
 
               renderers.add(primitiveObject);
@@ -321,8 +329,8 @@ class URDFLoader {
       xmlJoints[jointName] = jointNode;
 
       // get the links by name
-      XmlElement? parentNode = XMLFunctions.getXmlElementChildByName(jointNode, "parent");
-      XmlElement? childNode = XMLFunctions.getXmlElementChildByName(jointNode, "child");
+      XmlElement? parentNode = getXmlElementChildByName(jointNode, "parent");
+      XmlElement? childNode = getXmlElementChildByName(jointNode, "child");
       String parentName = parentNode!.getAttribute("link")!;
       String childName = childNode!.getAttribute("link")!;
       URDFLink parentLink = urdfLinks[parentName]!;
@@ -353,38 +361,38 @@ class URDFLoader {
       childLink.localRotation = Quaternion()..identity();
 
       // position the origin if it's specified
-      XmlElement? transformNode = XMLFunctions.getXmlElementChildByName(jointNode, "origin");
+      XmlElement? transformNode = getXmlElementChildByName(jointNode, "origin");
       Vector3 position = Vector3()..zero();
       if (transformNode != null && transformNode.getAttribute("xyz") != null) {
         position = tupleToVector3(transformNode.getAttribute("xyz")!);
       }
-      position = urdfToUnityPos(position);
+      position = urdfToThreePos(position);
 
       Vector3 rotation = Vector3()..zero();
       if (transformNode != null && transformNode.getAttribute("rpy") != null) {
         rotation = tupleToVector3(transformNode.getAttribute("rpy")!);
       }
-      rotation = urdfToUnityRot(rotation);
+      rotation = urdfToThreeRot(rotation);
 
       // parent the joint and name it
-      urdfJoint.localPosition = position;
-      urdfJoint.localRotation = Quaternion()..setFromEuler(Euler()..setFromVector3(rotation));
+      urdfJoint.localPosition = position.clone();
+      urdfJoint.localRotation = Quaternion()..setFromEuler(Euler()..setFromVector3(rotation, "YZX"));
       // TODO: Check if clone is actually necessary
       urdfJoint.originalPosition = position.clone();
-      urdfJoint.originalRotation = Quaternion()..setFromEuler(Euler()..setFromVector3(rotation));
+      urdfJoint.originalRotation = Quaternion()..setFromEuler(Euler()..setFromVector3(rotation, "YZX"));
 
       // get and set axis information
-      XmlElement? axisNode = XMLFunctions.getXmlElementChildByName(jointNode, "axis");
+      XmlElement? axisNode = getXmlElementChildByName(jointNode, "axis");
       if (axisNode != null) {
         Vector3 axis = tupleToVector3(axisNode.getAttribute("xyz")!) * -1;
-        axis = urdfToUnityPos(axis);
+        axis = urdfToThreePos(axis);
         axis.normalize();
 
         urdfJoint.axis = axis;
       }
 
       // get and set limit information
-      XmlElement? limitNode = XMLFunctions.getXmlElementChildByName(jointNode, "limit");
+      XmlElement? limitNode = getXmlElementChildByName(jointNode, "limit");
       if (limitNode != null) {
         if (limitNode.getAttribute("lower") != null) {
           urdfJoint.lower = double.parse(limitNode.getAttribute("lower")!);
@@ -395,8 +403,30 @@ class URDFLoader {
         }
       }
 
+      // handle mimic joints
+      XmlElement? mimicNode = getXmlElementChildByName(jointNode, "mimic");
+      if (mimicNode != null) {
+        String jointName = mimicNode.getAttribute("joint")!;
+
+        if (mimicNode.getAttribute("multiplier") != null) {
+          urdfJoint.multiplier = double.parse(mimicNode.getAttribute("multiplier")!);
+        }
+
+        if (mimicNode.getAttribute("offset") != null) {
+          urdfJoint.offset = double.parse(mimicNode.getAttribute("offset")!);
+        }
+
+        // add the mimicing joint
+        mimicJoints[jointName] = urdfJoint;
+      }
+
       // save the URDF joint
       urdfJoints[urdfJoint.name] = urdfJoint;
+    }
+
+    // loop through all mimic joints and add them to the joints they are mimicing
+    for (MapEntry<String, URDFJoint> entry in mimicJoints.entries) {
+      urdfJoints[entry.key]!.mimicJoints.add(entry.value);
     }
 
     // loop through all the transforms until we find the one that has no parent
@@ -416,6 +446,7 @@ class URDFLoader {
         robot.links = urdfLinks;
         robot.joints = urdfJoints;
 
+        // validate robot for consistency
         robot.isConsistent();
         return robot;
       }
@@ -425,14 +456,18 @@ class URDFLoader {
     return null;
   }
 
-  /// Default mesh loading function that can load STL's and DAE's from file
+  /// Loads a mesh from a file with the given path and extension.
+  /// Can load .stl, .STL, .dae files
+  ///
+  /// The [done] callback function is called with a list of [HierarchyNode] objects
+  /// representing the loaded mesh when the loading is complete.
   static Future<void> loadMesh(String path, String ext, Function(List<HierarchyNode>) done) async {
-    List<Mesh> meshes = [];
+    List<Object3D> meshes = [];
     if (ext == "stl" || ext == "STL") {
       Mesh mesh = await STLLoader(null).loadAsync(path);
       meshes.add(mesh);
     } else if (ext == "dae") {
-      List<Mesh> daeMeshes = await DAELoader.loadFromPath(path);
+      List<Object3D> daeMeshes = await DAELoader.loadFromPath(path, []);
       meshes.addAll(daeMeshes);
     } else {
       throw Exception("Filetype '$ext' not supported");
@@ -440,8 +475,8 @@ class URDFLoader {
 
     List<HierarchyNode> result = [];
     for (int i = 0; i < meshes.length; i++) {
-      HierarchyNode gameObject = HierarchyNode.identity("cube");
-      Mesh mesh = meshes[i];
+      HierarchyNode gameObject = HierarchyNode.identity(""); //.CreatePrimitive(PrimitiveType.Cube);
+      Object3D mesh = meshes[i];
 
       gameObject.addComponent(MeshHierarchyComponent(mesh, "mesh"));
 
@@ -451,10 +486,22 @@ class URDFLoader {
     done(result);
   }
 
+  /// Removes the leading slash from the given [path] string.
+  ///
+  /// Returns the modified string.
+  static String removeLeadingSlash(String path) {
+    if (path.startsWith('/') || path.startsWith('\\')) {
+      path = path.substring(1);
+    }
+
+    return path.replaceAll("\\", "/");
+  }
+
   /// Resolves the given mesh path with the package options and working paths to return a full path to the mesh file.
   static String resolveMeshPath(String path, Map<String, String> packages, String workingPath) {
     if (path.indexOf("package://") != 0) {
-      return workingPath.combinePath(path);
+      return removeLeadingSlash(p.normalize(p.join(workingPath, path)));
+      // workingPath.combinePath(path);
     }
 
     // extract the package name
@@ -465,17 +512,46 @@ class URDFLoader {
     String remaining = str.substring(index + 1);
 
     if (packages.containsKey(targetPackage)) {
-      return (packages[targetPackage] as String).combinePath(remaining);
+      return removeLeadingSlash(p.normalize(p.join((packages[targetPackage] as String), remaining)));
+      // (packages[targetPackage] as String).combinePath(remaining);
     } else if (packages.containsKey(singlePackageKey)) {
       String packagePath = packages[singlePackageKey]!;
       if (packagePath.endsWith(targetPackage)) {
-        return packagePath.combinePath(remaining);
+        return removeLeadingSlash(p.normalize(p.join(packagePath, remaining)));
+        // packagePath.combinePath(remaining);
       } else {
-        return packagePath.combinePath(targetPackage).combinePath(remaining);
+        return removeLeadingSlash(p.normalize(p.join(packagePath, targetPackage, remaining)));
+        //packagePath.combinePath(targetPackage).combinePath(remaining);
       }
     }
 
     throw Exception("URDFLoader: $targetPackage not found in provided package list!");
+  }
+
+  /// Returns all instances of found child nodes with the name [name], empty list if none could be found
+  static List<XmlElement> getXmlElementChildrenByName(XmlElement parent, String name, {bool recursive = false}) {
+    if (!recursive) return parent.childElements.where((element) => element.localName == name).toList();
+
+    List<XmlElement> nodes = [];
+    for (XmlElement n in parent.childElements) {
+      if (n.localName == name) {
+        nodes.add(n);
+      }
+
+      if (recursive) {
+        List<XmlElement> recursiveChildren = getXmlElementChildrenByName(n, name, recursive: true);
+        for (XmlElement x in recursiveChildren) {
+          nodes.add(x);
+        }
+      }
+    }
+
+    return nodes;
+  }
+
+  /// Returns the first instance of a child node with the name [name], null if it couldn't be found
+  static XmlElement? getXmlElementChildByName(XmlElement parent, String name) {
+    return parent.childElements.firstWhereOrNull((element) => element.localName == name);
   }
 
   /// Converts a String of the form "x y z" into a [Vector3]
@@ -501,8 +577,9 @@ class URDFLoader {
   }
 
   /// Converts a string tuple to a Color object.
-  /// The string tuple should be in the format "r g b a", where r, g, b, and a are integers between 0 and 255.
-  /// Returns a Color object.
+  ///
+  /// The [str] parameter is a string representation of a tuple in the format "(r, g, b, a)".
+  /// Returns a [Color] object with the corresponding RGBA values.
   static Color tupleToColor(String str) {
     str = str.trim();
     str = str.replaceAll("\\s+", " ");
@@ -538,16 +615,29 @@ class URDFLoader {
   /// X right
   /// Y up
   /// Z forward
-  static Vector3 urdfToUnityPos(Vector3 v) {
-    return Vector3(-v.y, v.z, v.x);
+  // static Vector3 urdfToUnityPos(Vector3 v) {
+  //   return Vector3(-v.y, v.z, v.x);
+  // }
+
+  /// Converts a Vector3 object from URDF format to Three.js format.
+  static Vector3 urdfToThreePos(Vector3 v) {
+    return Vector3(v.x, v.z, -v.y);
   }
 
   /// Converts a [Vector3] from URDF scale to Unity scale.
   ///
   /// The [v] parameter is the [Vector3] to be converted.
   /// Returns a new [Vector3] with the converted scale.
-  static Vector3 urdfToUnityScale(Vector3 v) {
-    return Vector3(v.y, v.z, v.x);
+  // static Vector3 urdfToUnityScale(Vector3 v) {
+  //   return Vector3(v.y, v.z, v.x);
+  // }
+
+  /// Converts a [Vector3] from URDF scale to Three.js scale.
+  ///
+  /// The [v] parameter is the [Vector3] to be converted.
+  /// Returns a new [Vector3] with the converted scale.
+  static Vector3 urdfToThreeScale(Vector3 v) {
+    return Vector3(v.x, v.z, v.y);
   }
 
   /// Converts a [Vector3] from URDF format to Unity rotation format.
@@ -567,13 +657,26 @@ class URDFLoader {
   /// yaw on Y
   /// pitch on X
   /// degrees
-  static Vector3 urdfToUnityRot(Vector3 v) {
+  // static Vector3 urdfToUnityRot(Vector3 v) {
+  //   // Negate X and Z because we're going from Right to Left handed rotations. Y is handled because the axis itself is flipped
+  //   v.x *= -1;
+  //   v.z *= -1;
+  //
+  //   // swap the angle values
+  //   v = Vector3(v.y, v.z, v.x);
+  //
+  //   return v;
+  // }
+
+  static Vector3 urdfToThreeRot(Vector3 v) {
     // Negate X and Z because we're going from Right to Left handed rotations. Y is handled because the axis itself is flipped
-    v.x *= -1;
-    v.z *= -1;
+    // v.x *= -1;
+    // v.z *= -1;
+    // v.y *= -1;
 
     // swap the angle values
-    v = Vector3(v.y, v.z, v.x);
+    v = Vector3(v.x, v.z, -v.y);
+    // v = Vector3(v.x, -v.z, v.y);
 
     return v;
   }

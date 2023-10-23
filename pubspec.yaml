@@ -1,5 +1,5 @@
 name: urdf_parser
-description: A new Flutter package project.
+description: A urdf parser extension for three_dart
 version: 0.0.1
 homepage:
 

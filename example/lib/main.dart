@@ -13,10 +13,17 @@ import 'package:flutter_gl/flutter_gl.dart';
 import 'package:three_dart/three_dart.dart' as three;
 import 'package:three_dart_jsm/three_dart_jsm.dart' as three_jsm;
 
-class ExamplePage extends StatefulWidget {
-  final String fileName;
+void main(List<String> args) {
+  runApp(
+    const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ExamplePage(),
+    ),
+  );
+}
 
-  const ExamplePage({Key? key, required this.fileName}) : super(key: key);
+class ExamplePage extends StatefulWidget {
+  const ExamplePage({Key? key}) : super(key: key);
 
   @override
   State<ExamplePage> createState() => _ExamplePageState();
@@ -71,7 +78,7 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
     width = screenSize!.width;
-    height = screenSize!.height - 30;
+    height = screenSize!.height;
 
     three3dRender = FlutterGlPlugin();
 
@@ -104,6 +111,21 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            screenSize = MediaQuery.of(context).size;
+
+            width = screenSize!.width;
+            height = screenSize!.height;
+            renderer!.setPixelRatio(MediaQuery.of(context).devicePixelRatio);
+            renderer!.setSize(width, height, true);
+          });
+
+          initScene();
+        },
+        child: Icon(Icons.repeat),
+      ),
       body: Builder(
         builder: (BuildContext context) {
           initSize(context);
@@ -143,20 +165,22 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
 
     int t1 = DateTime.now().millisecondsSinceEpoch;
 
-    // NOTE: Uncomment section below for test animation that loops through all available joints
-    // double time = t1 / 6e4; //3e2
+    double time = t1 / 3e2;
 
-    // List<MapEntry<String, URDFJoint>> joints = (robot!.joints.entries.where((entry) => entry.value.type != "fixed")).toList();
+    // robot animation
+    for (int i = 1; i <= 6; i++) {
+      double offset = i * pi / 3;
+      double ratio = max(0, sin(time + offset));
 
-    // // robot joint test animation
-    // double periodicValueSmall = sin((time * joints.length) % 1 * 2 * pi) / 2 + 0.5;
-    // int s = (time * joints.length).floor() % joints.length;
+      robot!.trySetAngle("HP$i", lerpDouble(30, 0, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle("KP$i", lerpDouble(90, 150, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle("AP$i", lerpDouble(-30, -60, ratio)! * three.MathUtils.deg2rad);
 
-    // // set last angle rotation to 0.5
-    // int lastS = (s - 1 + joints.length) % joints.length;
-    // robot!.trySetAngle(joints[lastS].key, lerpDouble(joints[lastS].value.lower, joints[lastS].value.upper, 0.5)!);
+      robot!.trySetAngle("TC${i}A", lerpDouble(0, 0.065, ratio)!);
+      robot!.trySetAngle("TC${i}B", lerpDouble(0, 0.065, ratio)!);
 
-    // robot!.trySetAngle(joints[s].key, lerpDouble(joints[s].value.lower, joints[s].value.upper, periodicValueSmall)!);
+      robot!.trySetAngle("W$i", t1 * 0.000001);
+    }
 
     if (verbose) {
       print("render cost: ${t1 - t} ");
@@ -183,41 +207,6 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
     if (!kIsWeb) {
       var pars = three.WebGLRenderTargetOptions({"minFilter": three.LinearFilter, "magFilter": three.LinearFilter, "format": three.RGBAFormat});
       renderTarget = three.WebGLRenderTarget((width * dpr).toInt(), (height * dpr).toInt(), pars);
-      renderTarget.samples = 4;
-      renderer!.setRenderTarget(renderTarget);
-      sourceTexture = renderer!.getRenderTargetGLTexture(renderTarget);
-    }
-  }
-
-  Future<void> initRenderer2() async {
-    Map<String, dynamic> options = {"width": width, "height": height, "antialias": true, "dpr": dpr};
-
-    FlutterGlPlugin glPlugin = FlutterGlPlugin();
-
-    await glPlugin.initialize(options: options);
-    Future.delayed(const Duration(milliseconds: 100), () async {
-      await glPlugin.prepareContext();
-    });
-
-    renderer = three.WebGLRenderer({
-      'gl': glPlugin.gl,
-      'canvas': glPlugin.element,
-      'width': width,
-      'height': height,
-      // 'alpha': alpha,
-      "antialias": true,
-    });
-    renderer!.setPixelRatio(dpr);
-    renderer!.setSize(width, height, false);
-    renderer!.shadowMap.enabled = false;
-
-    if (!kIsWeb) {
-      final three.WebGLRenderTargetOptions options = three.WebGLRenderTargetOptions({'format': three.RGBAFormat});
-      final three.RenderTarget renderTarget = three.WebGLMultisampleRenderTarget(
-        (width * dpr).toInt(),
-        (width * dpr).toInt(),
-        options,
-      );
       renderTarget.samples = 4;
       renderer!.setRenderTarget(renderTarget);
       sourceTexture = renderer!.getRenderTargetGLTexture(renderTarget);
@@ -275,14 +264,13 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
 
     // URDF
     robot = await URDFLoader.parse(
-      "path to urdf file",
-      "path to urdf content folder where stl/dae files are located",
+      "assets/T12/urdf/T12.URDF",
+      "assets/T12",
+      URDFLoaderOptions(),
     );
 
-    robot!.transform.scale = three.Vector3(100, 100, 100);
+    robot!.transform.scale = three.Vector3(10, 10, 10);
 
-    // robot!.transform.localRotation = three.Quaternion()..setFromEuler(three.Euler(pi, 0, 0));
-    // robot!.transform.localPosition = three.Vector3(0, 26, 0);
     // robot!.transform.printHierarchy();
 
     scene.add(robot!.getObject());

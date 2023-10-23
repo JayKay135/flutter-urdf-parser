@@ -6,5 +6,5 @@ import 'package:three_dart/three_dart.dart';
 class MeshHierarchyComponent extends HierarchyComponent {
   MeshHierarchyComponent(this.mesh, super.name);
 
-  Mesh mesh;
+  Object3D mesh;
 }

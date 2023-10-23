@@ -9,16 +9,6 @@ It includes a STL + DAE loader, URDF parser and quaternion + vector3 extension c
 
 Works with all plattforms that [three_dart](https://github.com/wasabia/three_dart) currently supports. Which are currently Web, iOS, Android, macOS and Windows.
 
-## Installation
-Add library to your `pubspec.yaml` under `dependencies`.
-```yaml
-dependencies:
-    urdf_parser:
-        git:
-            url: https://github.com/JayKay135/flutter-urdf-parser
-            ref: master
-```
-
 ## Basic Usage
 Requires working [three_dart](https://github.com/wasabia/three_dart) project.
 

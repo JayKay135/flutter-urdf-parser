@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
     
-  collection: ^1.18.0
+  collection: ^1.17.2
   path: ^1.8.3
 
   flutter_gl: ^0.0.21

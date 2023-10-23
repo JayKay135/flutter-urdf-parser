@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_gl: ^0.0.21
   three_dart: ^0.0.16
   three_dart_jsm: ^0.0.10
   
@@ -20,9 +21,7 @@ dependencies:
 
   # replace with
   # urdf_parser:
-  #   git:
-  #     url: https://github.com/JayKay135/flutter-urdf-parser
-  #     ref: master
+  #   urdf_parser: ^0.0.2
 
 
 dev_dependencies:

@@ -1,9 +1,9 @@
-import 'dart:math';
 import 'package:flutter_gl/flutter_gl.dart';
 import 'package:three_dart/three_dart.dart';
 import 'package:xml/xml.dart';
 import 'package:collection/collection.dart';
 
+// ignore: unused_import
 import 'extensions.dart';
 import 'xml_functions.dart';
 
@@ -229,7 +229,7 @@ class ColladaLite {
 
           for (XmlElement newParamNode in XMLFunctions.getXmlElementChildrenByName(profileCommonNode, "newparam")) {
             String paramName = newParamNode.getAttribute("sid")!;
-            var data; // double or List<double>
+            dynamic data; // double or List<double>
 
             // load the param value
             for (XmlElement dataTypeNode in newParamNode.childElements) {

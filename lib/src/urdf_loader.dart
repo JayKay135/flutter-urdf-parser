@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:urdf_parser/src/xml_functions.dart';
-
 import 'dae_loader.dart';
 import 'stl_loader.dart';
 import 'urdf_robot.dart';

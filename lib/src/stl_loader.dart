@@ -152,13 +152,13 @@ class STLLoader extends Loader {
     Mesh parseBinary(Uint8List data) {
       // const reader = DataView(data);
       ByteData byteData = data.buffer.asByteData();
-      final int faces = byteData.getUint32(80, Endian.little); // reader.getUint32(80, true);
+      final int faces = byteData.getUint32(80, Endian.little);
 
       bool hasColors = false;
       late Float32Array colors;
 
       late double r, g, b;
-      late double defaultR, defaultG, defaultB, alpha;
+      late double defaultR, defaultG, defaultB; //, alpha;
 
       // process STL header
       // check for default color in header ("COLOR=rgba" sequence).
@@ -173,7 +173,7 @@ class STLLoader extends Loader {
           defaultR = byteData.getUint8(index + 6) / 255;
           defaultG = byteData.getUint8(index + 7) / 255;
           defaultB = byteData.getUint8(index + 8) / 255;
-          alpha = byteData.getUint8(index + 9) / 255;
+          //alpha = byteData.getUint8(index + 9) / 255;
         }
       }
 

@@ -95,4 +95,4 @@ As this library is a C# port of [https://github.com/gkjohnson/urdf-loaders](http
 The library contains its own implementation of a hierarchy system using the `HierarchyNode` class with local/ global transformations.
 The `getObject()` function on the `URDFRobot` class then formats the custom hierarchy implementation to a [three_dart](https://github.com/wasabia/three_dart) group with set children.
 
-And as [three_dart](https://github.com/wasabia/three_dart) uses a coordinate system where the y-axis is typically up, a transformation is performed for each stl/dae mesh where the z-axis is going up.
+And as [three_dart](https://github.com/wasabia/three_dart) uses a coordinate system where the y-axis is typically up, a transformation is performed for each stl/dae mesh where the z-axis is facing upwards.

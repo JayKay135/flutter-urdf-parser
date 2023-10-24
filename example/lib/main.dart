@@ -273,6 +273,11 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
 
     scene.add(robot!.getObject());
 
+    // STL
+    three.Object3D object = await STLLoader(null).loadAsync("assets/stl/test.stl");
+    object.scale = three.Vector3(100, 100, 100);
+    scene.add(object);
+
     // --- Lights ---
     var dirLight1 = three.DirectionalLight(0xffffff);
     dirLight1.position.set(10, 10, 10);

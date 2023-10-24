@@ -5,7 +5,7 @@ import 'package:flutter_gl/flutter_gl.dart';
 import 'package:three_dart/three_dart.dart';
 import 'package:three_dart/three_dart.dart' as three;
 
-/// Description: A THREE loader for STL ASCII files, as created by Solidworks and other CAD programs.
+/// Description: A three loader for STL ASCII files, as created by Solidworks and other CAD programs.
 ///
 /// Supports both binary and ASCII encoded files, with automatic detection of type.
 ///
@@ -18,22 +18,22 @@ import 'package:three_dart/three_dart.dart' as three;
 ///
 /// Usage:
 ///  const loader = new STLLoader();
-///  loader.load( './models/stl/slotted_disk.stl', function ( geometry ) {
-///    scene.add( new THREE.Mesh( geometry ) );
+///  loader.load('assets/models/stl/slotted_disk.stl', (geometry) {
+///    scene.add(three.Mesh(geometry));
 ///  });
 ///
 /// For binary STLs geometry might contain colors for vertices. To use it:
 ///  // use the same code to load STL as above
 ///  if (geometry.hasColors) {
-///    material = new THREE.MeshPhongMaterial({ opacity: geometry.alpha, vertexColors: true });
+///    material = new three.MeshPhongMaterial({"opacity": geometry.alpha, "vertexColors": true });
 ///  } else { .... }
-///  const mesh = new THREE.Mesh( geometry, material );
+///  const mesh = new three.Mesh(geometry, material);
 ///
 /// For ASCII STLs containing multiple solids, each solid is assigned to a different group.
 /// Groups can be used to assign a different color by defining an array of materials with the same length of
 /// geometry.groups and passing it to the Mesh constructor:
 ///
-/// const mesh = new THREE.Mesh( geometry, material );
+/// const mesh = new three.Mesh(geometry, material);
 ///
 /// For example:
 ///
@@ -44,7 +44,7 @@ import 'package:three_dart/three_dart.dart' as three;
 ///
 ///  for (let i = 0; i < nGeometryGroups; i++) {
 ///
-///		const material = new THREE.MeshPhongMaterial({
+///		const material = new three.MeshPhongMaterial({
 ///			color: colorMap[i],
 ///			wireframe: false
 ///		});
@@ -52,7 +52,7 @@ import 'package:three_dart/three_dart.dart' as three;
 ///  }
 ///
 ///  materials.push(material);
-///  const mesh = new THREE.Mesh(geometry, materials);
+///  const mesh = new three.Mesh(geometry, materials);
 class STLLoader extends Loader {
   STLLoader(LoadingManager? manager) : super(manager);
 
@@ -144,11 +144,6 @@ class STLLoader extends Loader {
       return true;
     }
 
-    List<double> urdfToUnityPos(List<double> v) {
-      // return v;
-      return [-v[1], v[2], v[0]];
-    }
-
     Mesh parseBinary(Uint8List data) {
       // const reader = DataView(data);
       ByteData byteData = data.buffer.asByteData();
@@ -213,38 +208,9 @@ class STLLoader extends Loader {
           final int vertexstart = start + i * 12;
           final int componentIdx = (face * 3 * 3) + ((i - 1) * 3);
 
-          // List<double> adjustedVertices = urdfToUnityPos([
-          //   byteData.getFloat32(vertexstart, Endian.little),
-          //   byteData.getFloat32(vertexstart + 4, Endian.little),
-          //   byteData.getFloat32(vertexstart + 8, Endian.little),
-          // ]);
-
-          // vertices[componentIdx] = adjustedVertices[0]; // byteData.getFloat32(vertexstart, Endian.little);
-          // vertices[componentIdx + 1] = adjustedVertices[1]; // byteData.getFloat32(vertexstart + 4, Endian.little);
-          // vertices[componentIdx + 2] = adjustedVertices[2]; // byteData.getFloat32(vertexstart + 8, Endian.little);
-
-          // vertices[componentIdx] = byteData.getFloat32(vertexstart, Endian.little);
-          // vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 4, Endian.little);
-          // vertices[componentIdx + 2] = byteData.getFloat32(vertexstart + 8, Endian.little);
-
-          // NOTE: Old working example
-          // vertices[componentIdx + 0] = -byteData.getFloat32(vertexstart + 4, Endian.little);
-          // vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 8, Endian.little);
-          // vertices[componentIdx + 2] = byteData.getFloat32(vertexstart, Endian.little);
-
           vertices[componentIdx + 0] = byteData.getFloat32(vertexstart + 0, Endian.little);
           vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 4, Endian.little);
           vertices[componentIdx + 2] = byteData.getFloat32(vertexstart + 8, Endian.little);
-
-          // List<double> adjustedNormals = [normalX, normalY, normalZ];
-
-          // normals[componentIdx] = adjustedNormals[0]; // normalX;
-          // normals[componentIdx + 1] = adjustedNormals[1]; // normalY;
-          // normals[componentIdx + 2] = adjustedNormals[2]; // normalZ;
-
-          // normals[componentIdx] = normalX;
-          // normals[componentIdx + 1] = normalY;
-          // normals[componentIdx + 2] = normalZ;
 
           normals[componentIdx + 0] = -normalY;
           normals[componentIdx + 1] = normalZ;
@@ -269,15 +235,11 @@ class STLLoader extends Loader {
         // geometry.alpha = alpha;
       }
 
-      // geometry.rotateZ(pi / 2);
-      // geometry.rotateX(-pi / 2);
-      // geometry.rotateY(pi / 2);
-
       geometry.verticesNeedUpdate = true;
       geometry.normalsNeedUpdate = true;
 
       three.Matrix4 dae2threeMatrix = three.Matrix4();
-      dae2threeMatrix.set(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1).invert();
+      dae2threeMatrix.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
       geometry.applyMatrix4(dae2threeMatrix);
 
       return Mesh(geometry, MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide}));
@@ -294,9 +256,22 @@ class STLLoader extends Loader {
       final RegExp patternVertex = RegExp('vertex$patternFloat$patternFloat$patternFloat', multiLine: true);
       final RegExp patternNormal = RegExp('normal$patternFloat$patternFloat$patternFloat', multiLine: true);
 
+      final RegExp patternColor = RegExp(r'endsolid\s+\w+=RGB\((\d+),(\d+),(\d+)\)');
+
       List<double> vertices = [];
       List<double> normals = [];
       List<String> groupNames = [];
+
+      List<Color> colors = patternColor
+          .allMatches(data)
+          .map(
+            (e) => Color(
+              double.parse(e.group(1)!) / 255,
+              double.parse(e.group(2)!) / 255,
+              double.parse(e.group(3)!) / 255,
+            ),
+          )
+          .toList();
 
       var normal = Vector3();
 
@@ -334,12 +309,12 @@ class STLLoader extends Loader {
 
           // every face has to own ONE valid normal
           if (normalCountPerFace != 1) {
-            throw Exception('THREE.STLLoader: Something isn\'t right with the normal of face number $faceCounter');
+            throw Exception('three.STLLoader: Something isn\'t right with the normal of face number $faceCounter');
           }
 
-          // each face have to own THREE valid vertices
+          // each face have to own three valid vertices
           if (vertexCountPerFace != 3) {
-            throw Exception('THREE.STLLoader: Something isn\'t right with the vertices of face number $faceCounter');
+            throw Exception('three.STLLoader: Something isn\'t right with the vertices of face number $faceCounter');
           }
 
           faceCounter++;
@@ -354,21 +329,24 @@ class STLLoader extends Loader {
         groupCount++;
       }
 
-      // print("vertices: $vertices");
-
       geometry.setAttribute('position', Float32BufferAttribute(Float32Array.fromList(vertices), 3));
       geometry.setAttribute('normal', Float32BufferAttribute(Float32Array.fromList(normals), 3));
 
       three.Matrix4 dae2threeMatrix = three.Matrix4();
-      dae2threeMatrix.set(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1).invert();
+      dae2threeMatrix.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
       geometry.applyMatrix4(dae2threeMatrix);
 
-      // geometry.rotateZ(pi / 2);
-      // geometry.rotateX(-pi / 2);
-      // geometry.rotateY(pi / 2);
+      List<Material> materials;
 
-      // NOTE: To be fair: I don't know how color information is stored in the ascii format. I also don't know if it actually supports colors
-      return Mesh(geometry, MeshPhongMaterial({"color": 0xffffff, "flatShading": false, "side": DoubleSide}));
+      if (colors.length != groupCount) {
+        // apply default material to each group
+        materials = List.generate(groupCount, (index) => MeshBasicMaterial({"color": 0xffffff, "flatShading": true, "side": DoubleSide}));
+      } else {
+        // use extracted colors
+        materials = colors.map((e) => MeshBasicMaterial({"color": e.getHex(), "flatShading": true, "side": DoubleSide})).toList();
+      }
+
+      return Mesh(geometry, materials);
     }
 
     String ensureString(buffer) {
@@ -381,19 +359,17 @@ class STLLoader extends Loader {
 
     Uint8List ensureBinary(buffer) {
       if (buffer is String) {
-        final Uint8List array_buffer = Uint8List(buffer.length);
+        final Uint8List uint8list = Uint8List(buffer.length);
         for (int i = 0; i < buffer.length; i++) {
-          array_buffer[i] = buffer.codeUnitAt(i) & 0xff; // implicitly assumes little-endian
+          uint8list[i] = buffer.codeUnitAt(i) & 0xff; // implicitly assumes little-endian
         }
 
         // return array_buffer.buffer || array_buffer;
-        return array_buffer;
+        return uint8list;
       } else {
         return buffer;
       }
     }
-
-    // start
 
     final Uint8List binData = ensureBinary(json);
     return isBinary(binData) ? parseBinary(binData) : parseASCII(ensureString(json));

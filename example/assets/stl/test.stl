@@ -1,0 +1,19 @@
+solid object1
+  facet normal 0.0 0.0 0.0
+    outer loop
+      vertex 1.0 0.0 0.0
+      vertex 0.0 1.0 0.0
+      vertex 0.0 0.0 1.0
+    endloop
+  endfacet
+endsolid object1=RGB(0,0,255)
+
+solid object2
+  facet normal 0.0 0.0 0.0
+    outer loop
+      vertex -1.0 0.0 0.0
+      vertex 0.0 -1.0 0.0
+      vertex 0.0 0.0 -1.0
+    endloop
+  endfacet
+endsolid object2=RGB(255,0,0)

@@ -703,27 +703,11 @@ class ColladaLite {
                   geometry.setAttribute('uv', Float32BufferAttribute(Float32Array.fromList(uvs.expand((e) => [e.x, e.y]).toList()), 2));
                 }
 
-                // geometry.rotateY(-pi / 2);
-
-                // geometry.rotateY(pi / 2);
-                // geometry.rotateZ(pi / 2);
-                // geometry.rotateY(-pi / 2);
-
-                // geometry.rotateX(-pi / 2);
-
-                // geometry.applyMatrix4(matrix4Global * matrix4Local)
-
                 Matrix4 dae2threeMatrix = Matrix4();
-                dae2threeMatrix.set(1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1).invert();
+                dae2threeMatrix.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
 
                 // apply matrix4 transforms
                 if (transforms.containsKey(geometryId)) {
-                  // Matrix4 adjustedTransform = transforms[geometryId]!.clone().multiply(dae2threeMatrix);
-                  // Matrix4 adjustedTransform = dae2threeMatrix.clone().multiply(transforms[geometryId]!);
-                  // Matrix4 matrix = adjustedTransform.clone();
-
-                  // matrix.setPosition(matrix.elements[12], matrix.elements[14], -matrix.elements[13]);
-
                   dae2threeMatrix.multiply(transforms[geometryId]!);
                 }
 

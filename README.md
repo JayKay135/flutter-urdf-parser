@@ -12,13 +12,24 @@ Works with all plattforms that [three_dart](https://github.com/wasabia/three_dar
 ## Basic Usage
 Requires working [three_dart](https://github.com/wasabia/three_dart) project.
 
-Inside of your `initPage()` function load your urdf model.
+Inside of your `initPage()` function load your urdf model or dae/stl files.
 
 ```dart
 void initPage() async {
     scene = three.Scene();
     // ...
 
+    // --- STL ---
+    three.Object3D stlObject = await STLLoader(null).loadAsync("path to stl file");
+    scene.add(stlObject);
+
+    // --- DAE ---
+    List<three.Object3D> daeObjects = await DAELoader.loadFromPath('path to dae file', []);
+    for (three.Object3D object in daeObjects) {
+        scene.add(object);
+    }
+
+    // --- URDF ---
     // parse the urdf file to a URDFRobot object
     URDFRobot? robot = await URDFLoader.parse(
         "path to urdf file",
@@ -78,11 +89,47 @@ void render() {
  - .dae
 
 ## Additional Features
- - Supports color extraction of binary stl files, dae files and basic urdf color nodes
+ - Supports color extraction of binary/ ascii stl files, dae files and basic urdf color nodes
 
-## NOTE
+## Colors Formats
+Besides the obvious defined material definition of dae files, also stl files can containt color information. But there is unfortunately no official standard.
+
+### Ascii STL Color Format
+```
+solid object1
+  facet normal 0.0 0.0 0.0
+    outer loop
+      vertex 1.0 0.0 0.0
+      vertex 0.0 1.0 0.0
+      vertex 0.0 0.0 1.0
+    endloop
+  endfacet
+endsolid object1=RGB(0,0,255)
+
+solid object2
+  facet normal 0.0 0.0 0.0
+    outer loop
+      vertex -1.0 0.0 0.0
+      vertex 0.0 -1.0 0.0
+      vertex 0.0 0.0 -1.0
+    endloop
+  endfacet
+endsolid object2=RGB(255,0,0)
+```
+
+If color information is provided then each solid must contain it. Otherwise a default white materials is used for each solid.
+
+### Binary STL Color Format
+Suuports the "Magics" color format from [http://en.wikipedia.org/wiki/STL_(file_format)#Color_in_binary_STL](http://en.wikipedia.org/wiki/STL_(file_format)#Color_in_binary_STL).
+
+<!-- Each triangle is represented by 50 bytes:
+ - **Normal vector:** The first 12 bytes (three 32-bit floating point numbers) represent the normal vector of the triangle.
+ - **Vertices:** The next 36 bytes (three sets of three 32-bit floating point numbers) represent the vertices of the triangle.
+ - **Attribute byte count:** The last 2 bytes (an unsigned short integer) represent the attribute byte count. In standard binary STL files, this should be set to zero and ignored. However, for binary STL files with color, these 2 bytes can be used to store color information. -->
+
+## Note
 As this library is a C# port of [https://github.com/gkjohnson/urdf-loaders](https://github.com/gkjohnson/urdf-loaders) which was written for Unity.
 The library contains its own implementation of a hierarchy system using the `HierarchyNode` class with local/ global transformations.
 The `getObject()` function on the `URDFRobot` class then formats the custom hierarchy implementation to a [three_dart](https://github.com/wasabia/three_dart) group with set children.
 
-And as [three_dart](https://github.com/wasabia/three_dart) uses a coordinate system where the y-axis is typically up, a transformation is performed for each stl/dae mesh where the z-axis is facing upwards.
+And as [three_dart](https://github.com/wasabia/three_dart) uses a coordinate system where the y-axis is facing up, a transformation is performed from the z-axis upwards facing stl/dae formats.

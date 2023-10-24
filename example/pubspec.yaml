@@ -1,5 +1,5 @@
 name: example
-description: "Example for urdf_parser library"
+description: "Example for the urdf_parser library"
 publish_to: 'none'
 version: 0.1.0
 
@@ -37,3 +37,4 @@ flutter:
     - assets/T12/urdf/
     - assets/T12/meshes/
     - assets/T12/urdf/T12.URDF
+    - assets/stl/

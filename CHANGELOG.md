@@ -1,3 +1,7 @@
+## 0.0.4
+
+* Added support for ascii stl colors
+
 ## 0.0.3
 
 * Improvements for higher pub score

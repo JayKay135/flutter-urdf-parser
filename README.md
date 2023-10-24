@@ -7,12 +7,12 @@ This library is majorly an extended dart port of [https://github.com/gkjohnson/u
 
 It includes a STL + DAE loader, URDF parser and quaternion + vector3 extension class.
 
-Works with all plattforms that [three_dart](https://github.com/wasabia/three_dart) currently supports. Which are currently Web, iOS, Android, macOS and Windows.
+Works with all plattforms that [three_dart](https://github.com/wasabia/three_dart) currently supports. Which are at the time iOS, Android, macOS and Windows.
 
 ## Basic Usage
 Requires working [three_dart](https://github.com/wasabia/three_dart) project.
 
-Inside of your `initPage()` function load your urdf model or dae/stl files.
+Inside of your `initPage()` function load your dae/stl files or urdf model.
 
 ```dart
 void initPage() async {
@@ -90,9 +90,12 @@ void render() {
 
 ## Additional Features
  - Supports color extraction of binary/ ascii stl files, dae files and basic urdf color nodes
+ - Supports parsing of lines data of dae files
 
 ## Colors Formats
 Besides the obvious defined material definition of dae files, also stl files can containt color information. But there is unfortunately no official standard.
+
+This library supports the following stl color formats:
 
 ### Ascii STL Color Format
 ```
@@ -120,7 +123,7 @@ endsolid object2=RGB(255,0,0)
 If color information is provided then each solid must contain it. Otherwise a default white materials is used for each solid.
 
 ### Binary STL Color Format
-Suuports the "Magics" color format from [http://en.wikipedia.org/wiki/STL_(file_format)#Color_in_binary_STL](http://en.wikipedia.org/wiki/STL_(file_format)#Color_in_binary_STL).
+Supports the "Magics" color format from [https://en.wikipedia.org/wiki/STL_(file_format)#Binary](https://en.wikipedia.org/wiki/STL_(file_format)#Binary).
 
 <!-- Each triangle is represented by 50 bytes:
  - **Normal vector:** The first 12 bytes (three 32-bit floating point numbers) represent the normal vector of the triangle.

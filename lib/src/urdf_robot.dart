@@ -55,7 +55,8 @@ class URDFJoint extends HierarchyNode {
   Vector3 originalPosition;
   Quaternion originalRotation;
 
-  List<HierarchyNode> get geometry => childLink != null ? childLink!.geometry : [];
+  List<HierarchyNode> get geometry =>
+      childLink != null ? childLink!.geometry : [];
 
   double _angle = 0;
   double get angle => _angle;
@@ -91,7 +92,8 @@ class URDFJoint extends HierarchyNode {
           localRotation = q * originalRotation;
           _angle = val;
 
-          GroupHierarchyComponent? group = getComponent('group') as GroupHierarchyComponent?;
+          GroupHierarchyComponent? group =
+              getComponent('group') as GroupHierarchyComponent?;
           if (group != null) {
             group.group.setRotationFromQuaternion(localRotation);
           }
@@ -109,7 +111,8 @@ class URDFJoint extends HierarchyNode {
 
           Vector3 pos = originalPosition + axis * val;
 
-          GroupHierarchyComponent? group = getComponent('group') as GroupHierarchyComponent?;
+          GroupHierarchyComponent? group =
+              getComponent('group') as GroupHierarchyComponent?;
           if (group != null) {
             group.group.position = pos;
           }
@@ -176,7 +179,8 @@ class URDFRobot extends HierarchyComponent {
   Map<String, URDFLink> links = {};
 
   /// Amount of adjustable joints
-  int get availableJointCount => joints.entries.where((entry) => entry.value.type != "fixed").length;
+  int get availableJointCount =>
+      joints.entries.where((entry) => entry.value.type != "fixed").length;
 
   /// Returns the mesh of the robot as an Object3D.
   Object3D getObject() {
@@ -189,7 +193,8 @@ class URDFRobot extends HierarchyComponent {
 
   /// Adds a [HierarchyNode] to the scene graph with an optional [parent].
   void _addHierarchyNode(HierarchyNode node, Object3D? parent) {
-    MeshHierarchyComponent? mesh = node.getComponent('mesh') as MeshHierarchyComponent?;
+    MeshHierarchyComponent? mesh =
+        node.getComponent('mesh') as MeshHierarchyComponent?;
     Group? group;
 
     if (mesh != null) {
@@ -315,7 +320,10 @@ class URDFRobot extends HierarchyComponent {
       }
 
       if (!j.parentLink!.children.contains(j)) {
-        return (false, "Joint ${j.name}'s parent link ${j.parentLink!.name} does not contain it as a child");
+        return (
+          false,
+          "Joint ${j.name}'s parent link ${j.parentLink!.name} does not contain it as a child"
+        );
       }
 
       if (j.childLink == null) {
@@ -323,7 +331,10 @@ class URDFRobot extends HierarchyComponent {
       }
 
       if (j.childLink!.parent != j) {
-        return (false, "Joint ${j.name}'s child link ${j.childLink!.name} does not have it as a parent");
+        return (
+          false,
+          "Joint ${j.name}'s child link ${j.childLink!.name} does not have it as a parent"
+        );
       }
     }
 
@@ -338,7 +349,10 @@ class URDFRobot extends HierarchyComponent {
       }
 
       if (l.parent != null && (l.parent! as URDFJoint).childLink != l) {
-        return (false, "Link ${l.name}'s parent joint ${l.parent!.name} does not have it as a child");
+        return (
+          false,
+          "Link ${l.name}'s parent joint ${l.parent!.name} does not have it as a child"
+        );
       }
 
       // for (URDFJoint j in l.children as List<URDFJoint>) {

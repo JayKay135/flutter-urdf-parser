@@ -16,7 +16,8 @@ class HierarchyNode {
 
   Map<String, HierarchyComponent> _components = {};
 
-  HierarchyComponent addComponent(HierarchyComponent component) => _components[component.name] = component;
+  HierarchyComponent addComponent(HierarchyComponent component) =>
+      _components[component.name] = component;
   HierarchyComponent? getComponent(String name) => _components[name];
 
   HierarchyNode({
@@ -42,7 +43,8 @@ class HierarchyNode {
     if (parent == null) {
       return localPosition * scale;
     } else {
-      return parent!.globalPosition + parent!.globalRotation.rotate(localPosition * scale);
+      return parent!.globalPosition +
+          parent!.globalRotation.rotate(localPosition * scale);
     }
   }
 
@@ -50,7 +52,9 @@ class HierarchyNode {
     if (parent == null) {
       localPosition = position;
     } else {
-      localPosition = parent!.globalRotation.inverse().rotate(position - parent!.globalPosition);
+      localPosition = parent!.globalRotation
+          .inverse()
+          .rotate(position - parent!.globalPosition);
     }
   }
 

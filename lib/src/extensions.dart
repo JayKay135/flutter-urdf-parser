@@ -61,9 +61,15 @@ extension QuaternionExtensions on Quaternion {
     var num12 = w * num3;
 
     Vector3 result = Vector3()..zero();
-    result.x = (1 - (num5 + num6)) * vector.x + (num7 - num12) * vector.y + (num8 + num11) * vector.z;
-    result.y = (num7 + num12) * vector.x + (1 - (num4 + num6)) * vector.y + (num9 - num10) * vector.z;
-    result.z = (num8 - num11) * vector.x + (num9 + num10) * vector.y + (1 - (num4 + num5)) * vector.z;
+    result.x = (1 - (num5 + num6)) * vector.x +
+        (num7 - num12) * vector.y +
+        (num8 + num11) * vector.z;
+    result.y = (num7 + num12) * vector.x +
+        (1 - (num4 + num6)) * vector.y +
+        (num9 - num10) * vector.z;
+    result.z = (num8 - num11) * vector.x +
+        (num9 + num10) * vector.y +
+        (1 - (num4 + num5)) * vector.z;
 
     return result;
   }

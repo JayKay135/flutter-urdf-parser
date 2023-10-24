@@ -80,7 +80,13 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
 
     three3dRender = FlutterGlPlugin();
 
-    Map<String, dynamic> options = {"antialias": true, "alpha": false, "width": width.toInt(), "height": height.toInt(), "dpr": dpr};
+    Map<String, dynamic> options = {
+      "antialias": true,
+      "alpha": false,
+      "width": width.toInt(),
+      "height": height.toInt(),
+      "dpr": dpr
+    };
 
     await three3dRender.initialize(options: options);
 
@@ -145,9 +151,14 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
                   color: Colors.red,
                   child: Builder(builder: (BuildContext context) {
                     if (kIsWeb) {
-                      return three3dRender.isInitialized ? HtmlElementView(viewType: three3dRender.textureId!.toString()) : Container();
+                      return three3dRender.isInitialized
+                          ? HtmlElementView(
+                              viewType: three3dRender.textureId!.toString())
+                          : Container();
                     } else {
-                      return three3dRender.isInitialized ? Texture(textureId: three3dRender.textureId!) : Container();
+                      return three3dRender.isInitialized
+                          ? Texture(textureId: three3dRender.textureId!)
+                          : Container();
                     }
                   }));
             }),
@@ -170,9 +181,12 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
       double offset = i * pi / 3;
       double ratio = max(0, sin(time + offset));
 
-      robot!.trySetAngle("HP$i", lerpDouble(30, 0, ratio)! * three.MathUtils.deg2rad);
-      robot!.trySetAngle("KP$i", lerpDouble(90, 150, ratio)! * three.MathUtils.deg2rad);
-      robot!.trySetAngle("AP$i", lerpDouble(-30, -60, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle(
+          "HP$i", lerpDouble(30, 0, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle(
+          "KP$i", lerpDouble(90, 150, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle(
+          "AP$i", lerpDouble(-30, -60, ratio)! * three.MathUtils.deg2rad);
 
       robot!.trySetAngle("TC${i}A", lerpDouble(0, 0.065, ratio)!);
       robot!.trySetAngle("TC${i}B", lerpDouble(0, 0.065, ratio)!);
@@ -196,15 +210,26 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
   }
 
   void initRenderer() {
-    Map<String, dynamic> options = {"width": width, "height": height, "gl": three3dRender.gl, "antialias": true, "canvas": three3dRender.element};
+    Map<String, dynamic> options = {
+      "width": width,
+      "height": height,
+      "gl": three3dRender.gl,
+      "antialias": true,
+      "canvas": three3dRender.element
+    };
     renderer = three.WebGLRenderer(options);
     renderer!.setPixelRatio(dpr);
     renderer!.setSize(width, height, false);
     renderer!.shadowMap.enabled = false;
 
     if (!kIsWeb) {
-      var pars = three.WebGLRenderTargetOptions({"minFilter": three.LinearFilter, "magFilter": three.LinearFilter, "format": three.RGBAFormat});
-      renderTarget = three.WebGLRenderTarget((width * dpr).toInt(), (height * dpr).toInt(), pars);
+      var pars = three.WebGLRenderTargetOptions({
+        "minFilter": three.LinearFilter,
+        "magFilter": three.LinearFilter,
+        "format": three.RGBAFormat
+      });
+      renderTarget = three.WebGLRenderTarget(
+          (width * dpr).toInt(), (height * dpr).toInt(), pars);
       renderTarget.samples = 4;
       renderer!.setRenderTarget(renderTarget);
       sourceTexture = renderer!.getRenderTargetGLTexture(renderTarget);
@@ -227,7 +252,8 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
     // --- Controls ---
     controls = three_jsm.OrbitControls(camera, _globalKey);
 
-    controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+    controls.enableDamping =
+        true; // an animation loop is required when either damping or auto-rotation are enabled
     controls.dampingFactor = 0.05;
 
     controls.screenSpacePanning = false;
@@ -240,22 +266,26 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
     // --- World ---
 
     // grid helper
-    three.GridHelper gridHelper = three.GridHelper(1000, 20, 0xff8400, 0x0095ff);
+    three.GridHelper gridHelper =
+        three.GridHelper(1000, 20, 0xff8400, 0x0095ff);
     gridHelper.position = three.Vector3(0, 0, 0);
     gridHelper.frustumCulled = false;
     scene.add(gridHelper);
 
     // axis
-    three.Mesh xMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100), three.MeshPhongMaterial({"color": 0xff0000, "flatShading": false}));
+    three.Mesh xMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100),
+        three.MeshPhongMaterial({"color": 0xff0000, "flatShading": false}));
     xMesh.position = three.Vector3(60, 0, 0);
     xMesh.setRotationFromEuler(three.Euler(0, 0, pi / 2));
     scene.add(xMesh);
 
-    three.Mesh yMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100), three.MeshPhongMaterial({"color": 0x00ff00, "flatShading": false}));
+    three.Mesh yMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100),
+        three.MeshPhongMaterial({"color": 0x00ff00, "flatShading": false}));
     yMesh.position = three.Vector3(0, 60, 0);
     scene.add(yMesh);
 
-    three.Mesh zMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100), three.MeshPhongMaterial({"color": 0x0000ff, "flatShading": false}));
+    three.Mesh zMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100),
+        three.MeshPhongMaterial({"color": 0x0000ff, "flatShading": false}));
     zMesh.position = three.Vector3(0, 0, 60);
     zMesh.setRotationFromEuler(three.Euler(pi / 2, 0, 0));
     scene.add(zMesh);
@@ -274,7 +304,8 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
     scene.add(robot!.getObject());
 
     // STL
-    three.Object3D object = await STLLoader(null).loadAsync("assets/stl/test.stl");
+    three.Object3D object =
+        await STLLoader(null).loadAsync("assets/stl/test.stl");
     object.scale = three.Vector3(100, 100, 100);
     scene.add(object);
 

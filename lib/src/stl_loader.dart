@@ -104,7 +104,8 @@ class STLLoader extends Loader {
       // Check if each byte in query matches the corresponding byte from the current offset
 
       for (int i = 0, il = query.length; i < il; i++) {
-        if (query[i] != reader.buffer.asByteData().getUint8(offset + i)) return false;
+        if (query[i] != reader.buffer.asByteData().getUint8(offset + i))
+          return false;
       }
 
       return true;
@@ -208,9 +209,12 @@ class STLLoader extends Loader {
           final int vertexstart = start + i * 12;
           final int componentIdx = (face * 3 * 3) + ((i - 1) * 3);
 
-          vertices[componentIdx + 0] = byteData.getFloat32(vertexstart + 0, Endian.little);
-          vertices[componentIdx + 1] = byteData.getFloat32(vertexstart + 4, Endian.little);
-          vertices[componentIdx + 2] = byteData.getFloat32(vertexstart + 8, Endian.little);
+          vertices[componentIdx + 0] =
+              byteData.getFloat32(vertexstart + 0, Endian.little);
+          vertices[componentIdx + 1] =
+              byteData.getFloat32(vertexstart + 4, Endian.little);
+          vertices[componentIdx + 2] =
+              byteData.getFloat32(vertexstart + 8, Endian.little);
 
           normals[componentIdx + 0] = -normalY;
           normals[componentIdx + 1] = normalZ;
@@ -242,7 +246,13 @@ class STLLoader extends Loader {
       dae2threeMatrix.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
       geometry.applyMatrix4(dae2threeMatrix);
 
-      return Mesh(geometry, MeshPhongMaterial({"color": color.getHex(), "flatShading": false, "side": DoubleSide}));
+      return Mesh(
+          geometry,
+          MeshPhongMaterial({
+            "color": color.getHex(),
+            "flatShading": false,
+            "side": DoubleSide
+          }));
     }
 
     Mesh parseASCII(String data) {
@@ -253,10 +263,15 @@ class STLLoader extends Loader {
       int faceCounter = 0;
 
       const patternFloat = r"[\s]+([+-]?(?:\d*)(?:\.\d*)?(?:[eE][+-]?\d+)?)";
-      final RegExp patternVertex = RegExp('vertex$patternFloat$patternFloat$patternFloat', multiLine: true);
-      final RegExp patternNormal = RegExp('normal$patternFloat$patternFloat$patternFloat', multiLine: true);
+      final RegExp patternVertex = RegExp(
+          'vertex$patternFloat$patternFloat$patternFloat',
+          multiLine: true);
+      final RegExp patternNormal = RegExp(
+          'normal$patternFloat$patternFloat$patternFloat',
+          multiLine: true);
 
-      final RegExp patternColor = RegExp(r'endsolid\s+\w+=RGB\((\d+),(\d+),(\d+)\)');
+      final RegExp patternColor =
+          RegExp(r'endsolid\s+\w+=RGB\((\d+),(\d+),(\d+)\)');
 
       List<double> vertices = [];
       List<double> normals = [];
@@ -283,7 +298,9 @@ class STLLoader extends Loader {
         startVertex = endVertex;
 
         final solid = match1!.group(0);
-        final name = (match1 = patternName.firstMatch(solid!)) != null ? match1!.group(1) : '';
+        final name = (match1 = patternName.firstMatch(solid!)) != null
+            ? match1!.group(1)
+            : '';
 
         groupNames.add(name!);
 
@@ -301,7 +318,11 @@ class STLLoader extends Loader {
           }
 
           for (Match match in patternVertex.allMatches(text)) {
-            vertices.addAll([parseFloat(match.group(1)!), parseFloat(match.group(2)!), parseFloat(match.group(3)!)]);
+            vertices.addAll([
+              parseFloat(match.group(1)!),
+              parseFloat(match.group(2)!),
+              parseFloat(match.group(3)!)
+            ]);
             normals.addAll([normal.x, normal.y, normal.z]);
             vertexCountPerFace++;
             endVertex++;
@@ -309,12 +330,14 @@ class STLLoader extends Loader {
 
           // every face has to own ONE valid normal
           if (normalCountPerFace != 1) {
-            throw Exception('three.STLLoader: Something isn\'t right with the normal of face number $faceCounter');
+            throw Exception(
+                'three.STLLoader: Something isn\'t right with the normal of face number $faceCounter');
           }
 
           // each face have to own three valid vertices
           if (vertexCountPerFace != 3) {
-            throw Exception('three.STLLoader: Something isn\'t right with the vertices of face number $faceCounter');
+            throw Exception(
+                'three.STLLoader: Something isn\'t right with the vertices of face number $faceCounter');
           }
 
           faceCounter++;
@@ -329,8 +352,10 @@ class STLLoader extends Loader {
         groupCount++;
       }
 
-      geometry.setAttribute('position', Float32BufferAttribute(Float32Array.fromList(vertices), 3));
-      geometry.setAttribute('normal', Float32BufferAttribute(Float32Array.fromList(normals), 3));
+      geometry.setAttribute('position',
+          Float32BufferAttribute(Float32Array.fromList(vertices), 3));
+      geometry.setAttribute(
+          'normal', Float32BufferAttribute(Float32Array.fromList(normals), 3));
 
       three.Matrix4 dae2threeMatrix = three.Matrix4();
       dae2threeMatrix.set(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
@@ -340,10 +365,16 @@ class STLLoader extends Loader {
 
       if (colors.length != groupCount) {
         // apply default material to each group
-        materials = List.generate(groupCount, (index) => MeshBasicMaterial({"color": 0xffffff, "flatShading": true, "side": DoubleSide}));
+        materials = List.generate(
+            groupCount,
+            (index) => MeshBasicMaterial(
+                {"color": 0xffffff, "flatShading": true, "side": DoubleSide}));
       } else {
         // use extracted colors
-        materials = colors.map((e) => MeshBasicMaterial({"color": e.getHex(), "flatShading": true, "side": DoubleSide})).toList();
+        materials = colors
+            .map((e) => MeshBasicMaterial(
+                {"color": e.getHex(), "flatShading": true, "side": DoubleSide}))
+            .toList();
       }
 
       return Mesh(geometry, materials);
@@ -361,7 +392,8 @@ class STLLoader extends Loader {
       if (buffer is String) {
         final Uint8List uint8list = Uint8List(buffer.length);
         for (int i = 0; i < buffer.length; i++) {
-          uint8list[i] = buffer.codeUnitAt(i) & 0xff; // implicitly assumes little-endian
+          uint8list[i] =
+              buffer.codeUnitAt(i) & 0xff; // implicitly assumes little-endian
         }
 
         // return array_buffer.buffer || array_buffer;
@@ -372,6 +404,8 @@ class STLLoader extends Loader {
     }
 
     final Uint8List binData = ensureBinary(json);
-    return isBinary(binData) ? parseBinary(binData) : parseASCII(ensureString(json));
+    return isBinary(binData)
+        ? parseBinary(binData)
+        : parseASCII(ensureString(json));
   }
 }

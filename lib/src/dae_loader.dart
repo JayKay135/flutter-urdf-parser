@@ -25,7 +25,8 @@ class DAELoader {
   /// [path] : should be the path to the dae file
   /// [textures] : a collection of the names of the textures associated with the meshes, if there are no texture or you do not care about them pass string[0]
   ///
-  static Future<List<Object3D>> loadFromPath(String path, List<String> textures) async {
+  static Future<List<Object3D>> loadFromPath(
+      String path, List<String> textures) async {
     ColladaLite? cLite;
 
     File file = File(path);

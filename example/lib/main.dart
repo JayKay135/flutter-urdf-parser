@@ -49,6 +49,9 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
 
   dynamic sourceTexture;
 
+  late bool resizing;
+  DateTime? lastResize;
+
   late GlobalKey<three_jsm.DomLikeListenableState> _globalKey;
 
   late three_jsm.OrbitControls controls;
@@ -59,18 +62,33 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
   void initState() {
     _globalKey = GlobalKey<three_jsm.DomLikeListenableState>();
 
+    resizing = false;
+
     super.initState();
 
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
-  void dispose() {
-    disposed = true;
+  void didChangeMetrics() {
+    setState(() {
+      resizing = true;
+      lastResize = DateTime.now();
 
-    WidgetsBinding.instance.removeObserver(this);
+      checkForResizeEnd();
+    });
+  }
 
-    super.dispose();
+  Future<void> checkForResizeEnd() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (DateTime.now().difference(lastResize!) > const Duration(milliseconds: 100)) {
+      setState(() {
+        resizing = false;
+
+        changeScreenSize();
+      });
+    }
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.
@@ -80,13 +98,7 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
 
     three3dRender = FlutterGlPlugin();
 
-    Map<String, dynamic> options = {
-      "antialias": true,
-      "alpha": false,
-      "width": width.toInt(),
-      "height": height.toInt(),
-      "dpr": dpr
-    };
+    Map<String, dynamic> options = {"antialias": true, "alpha": false, "width": width.toInt(), "height": height.toInt(), "dpr": dpr};
 
     await three3dRender.initialize(options: options);
 
@@ -112,24 +124,21 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
     initPlatformState();
   }
 
+  void changeScreenSize() {
+    screenSize = MediaQuery.of(context).size;
+
+    width = screenSize!.width;
+    height = screenSize!.height;
+
+    renderer!.setPixelRatio(MediaQuery.of(context).devicePixelRatio);
+    renderer!.setSize(width, height, true);
+
+    initScene();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          setState(() {
-            screenSize = MediaQuery.of(context).size;
-
-            width = screenSize!.width;
-            height = screenSize!.height;
-            renderer!.setPixelRatio(MediaQuery.of(context).devicePixelRatio);
-            renderer!.setSize(width, height, true);
-          });
-
-          initScene();
-        },
-        child: Icon(Icons.repeat),
-      ),
       body: Builder(
         builder: (BuildContext context) {
           initSize(context);
@@ -145,20 +154,21 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
         three_jsm.DomLikeListenable(
             key: _globalKey,
             builder: (BuildContext context) {
+              if (resizing) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.green),
+                );
+              }
+
               return Container(
                   width: width,
                   height: height,
                   color: Colors.red,
                   child: Builder(builder: (BuildContext context) {
                     if (kIsWeb) {
-                      return three3dRender.isInitialized
-                          ? HtmlElementView(
-                              viewType: three3dRender.textureId!.toString())
-                          : Container();
+                      return three3dRender.isInitialized ? HtmlElementView(viewType: three3dRender.textureId!.toString()) : Container();
                     } else {
-                      return three3dRender.isInitialized
-                          ? Texture(textureId: three3dRender.textureId!)
-                          : Container();
+                      return three3dRender.isInitialized ? Texture(textureId: three3dRender.textureId!) : Container();
                     }
                   }));
             }),
@@ -181,12 +191,9 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
       double offset = i * pi / 3;
       double ratio = max(0, sin(time + offset));
 
-      robot!.trySetAngle(
-          "HP$i", lerpDouble(30, 0, ratio)! * three.MathUtils.deg2rad);
-      robot!.trySetAngle(
-          "KP$i", lerpDouble(90, 150, ratio)! * three.MathUtils.deg2rad);
-      robot!.trySetAngle(
-          "AP$i", lerpDouble(-30, -60, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle("HP$i", lerpDouble(30, 0, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle("KP$i", lerpDouble(90, 150, ratio)! * three.MathUtils.deg2rad);
+      robot!.trySetAngle("AP$i", lerpDouble(-30, -60, ratio)! * three.MathUtils.deg2rad);
 
       robot!.trySetAngle("TC${i}A", lerpDouble(0, 0.065, ratio)!);
       robot!.trySetAngle("TC${i}B", lerpDouble(0, 0.065, ratio)!);
@@ -210,26 +217,15 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
   }
 
   void initRenderer() {
-    Map<String, dynamic> options = {
-      "width": width,
-      "height": height,
-      "gl": three3dRender.gl,
-      "antialias": true,
-      "canvas": three3dRender.element
-    };
+    Map<String, dynamic> options = {"width": width, "height": height, "gl": three3dRender.gl, "antialias": true, "canvas": three3dRender.element};
     renderer = three.WebGLRenderer(options);
     renderer!.setPixelRatio(dpr);
     renderer!.setSize(width, height, false);
     renderer!.shadowMap.enabled = false;
 
     if (!kIsWeb) {
-      var pars = three.WebGLRenderTargetOptions({
-        "minFilter": three.LinearFilter,
-        "magFilter": three.LinearFilter,
-        "format": three.RGBAFormat
-      });
-      renderTarget = three.WebGLRenderTarget(
-          (width * dpr).toInt(), (height * dpr).toInt(), pars);
+      var pars = three.WebGLRenderTargetOptions({"minFilter": three.LinearFilter, "magFilter": three.LinearFilter, "format": three.RGBAFormat});
+      renderTarget = three.WebGLRenderTarget((width * dpr).toInt(), (height * dpr).toInt(), pars);
       renderTarget.samples = 4;
       renderer!.setRenderTarget(renderTarget);
       sourceTexture = renderer!.getRenderTargetGLTexture(renderTarget);
@@ -252,8 +248,7 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
     // --- Controls ---
     controls = three_jsm.OrbitControls(camera, _globalKey);
 
-    controls.enableDamping =
-        true; // an animation loop is required when either damping or auto-rotation are enabled
+    controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
     controls.dampingFactor = 0.05;
 
     controls.screenSpacePanning = false;
@@ -266,48 +261,43 @@ class _ExamplePageState extends State<ExamplePage> with WidgetsBindingObserver {
     // --- World ---
 
     // grid helper
-    three.GridHelper gridHelper =
-        three.GridHelper(1000, 20, 0xff8400, 0x0095ff);
+    three.GridHelper gridHelper = three.GridHelper(1000, 20, 0xff8400, 0x0095ff);
     gridHelper.position = three.Vector3(0, 0, 0);
     gridHelper.frustumCulled = false;
     scene.add(gridHelper);
 
     // axis
-    three.Mesh xMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100),
-        three.MeshPhongMaterial({"color": 0xff0000, "flatShading": false}));
+    three.Mesh xMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100), three.MeshPhongMaterial({"color": 0xff0000, "flatShading": false}));
     xMesh.position = three.Vector3(60, 0, 0);
     xMesh.setRotationFromEuler(three.Euler(0, 0, pi / 2));
     scene.add(xMesh);
 
-    three.Mesh yMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100),
-        three.MeshPhongMaterial({"color": 0x00ff00, "flatShading": false}));
+    three.Mesh yMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100), three.MeshPhongMaterial({"color": 0x00ff00, "flatShading": false}));
     yMesh.position = three.Vector3(0, 60, 0);
     scene.add(yMesh);
 
-    three.Mesh zMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100),
-        three.MeshPhongMaterial({"color": 0x0000ff, "flatShading": false}));
+    three.Mesh zMesh = three.Mesh(three.CylinderGeometry(0.5, 0.5, 100), three.MeshPhongMaterial({"color": 0x0000ff, "flatShading": false}));
     zMesh.position = three.Vector3(0, 0, 60);
     zMesh.setRotationFromEuler(three.Euler(pi / 2, 0, 0));
     scene.add(zMesh);
 
-    // URDF
-    robot = await URDFLoader.parse(
-      "assets/T12/urdf/T12.URDF",
-      "assets/T12",
-      URDFLoaderOptions(),
-    );
+    // // URDF
+    // robot = await URDFLoader.parse(
+    //   "assets/T12/urdf/T12.URDF",
+    //   "assets/T12",
+    //   URDFLoaderOptions(),
+    // );
 
-    robot!.transform.scale = three.Vector3(10, 10, 10);
+    // robot!.transform.scale = three.Vector3(10, 10, 10);
 
-    // robot!.transform.printHierarchy();
+    // // robot!.transform.printHierarchy();
 
-    scene.add(robot!.getObject());
+    // scene.add(robot!.getObject());
 
-    // STL
-    three.Object3D object =
-        await STLLoader(null).loadAsync("assets/stl/test.stl");
-    object.scale = three.Vector3(100, 100, 100);
-    scene.add(object);
+    // // STL
+    // three.Object3D object = await STLLoader(null).loadAsync("assets/stl/test.stl");
+    // object.scale = three.Vector3(100, 100, 100);
+    // scene.add(object);
 
     // --- Lights ---
     var dirLight1 = three.DirectionalLight(0xffffff);

@@ -1,4 +1,7 @@
 # Flutter URDF-Parser
+[![pub package](https://img.shields.io/pub/v/urdf_parser.svg)](https://pub.dev/packages/urdf_parser)
+[![pub points](https://img.shields.io/pub/points/urdf_parser.svg)](https://pub.dev/packages/urdf_parser)
+[![package publisher](https://img.shields.io/pub/publisher/urdf_parser.svg)](https://pub.dev/packages/urdf_parser/publisher)
 
 ![example animation](data/animation.gif)
 

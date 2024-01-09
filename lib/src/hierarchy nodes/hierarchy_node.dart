@@ -16,8 +16,7 @@ class HierarchyNode {
 
   Map<String, HierarchyComponent> _components = {};
 
-  HierarchyComponent addComponent(HierarchyComponent component) =>
-      _components[component.name] = component;
+  HierarchyComponent addComponent(HierarchyComponent component) => _components[component.name] = component;
   HierarchyComponent? getComponent(String name) => _components[name];
 
   HierarchyNode({
@@ -43,8 +42,7 @@ class HierarchyNode {
     if (parent == null) {
       return localPosition * scale;
     } else {
-      return parent!.globalPosition +
-          parent!.globalRotation.rotate(localPosition * scale);
+      return parent!.globalPosition + parent!.globalRotation.rotate(localPosition * scale);
     }
   }
 
@@ -52,9 +50,7 @@ class HierarchyNode {
     if (parent == null) {
       localPosition = position;
     } else {
-      localPosition = parent!.globalRotation
-          .inverse()
-          .rotate(position - parent!.globalPosition);
+      localPosition = parent!.globalRotation.inverse().rotate(position - parent!.globalPosition);
     }
   }
 
@@ -105,9 +101,9 @@ class HierarchyNode {
     String spaces = " " * spacing * 2;
 
     Euler rot = Euler()..setFromQuaternion(localRotation);
-    rot.x *= MathUtils.rad2deg;
-    rot.y *= MathUtils.rad2deg;
-    rot.z *= MathUtils.rad2deg;
+    rot.x *= MathUtils.RAD2DEG;
+    rot.y *= MathUtils.RAD2DEG;
+    rot.z *= MathUtils.RAD2DEG;
 
     print(
         "$spaces > $name pos:(${localPosition.x}, ${localPosition.y}, ${localPosition.z}), rot:(${rot.x.toStringAsFixed(4)}, ${rot.y.toStringAsFixed(4)}, ${rot.z.toStringAsFixed(4)}), scale:(${scale.x}, ${scale.y}, ${scale.z})");

@@ -5,7 +5,6 @@
 
 ![example animation](data/animation.gif)
 
-
 This library is majorly an extended dart port of [https://github.com/gkjohnson/urdf-loaders](https://github.com/gkjohnson/urdf-loaders) for the dart three_js port of [https://github.com/wasabia/three_dart](https://github.com/wasabia/three_dart).
 
 It includes a STL + DAE loader, URDF parser and quaternion + vector3 extension class.
